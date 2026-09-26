@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from pydantic import BaseModel
+from rag import rag_answer
 
 load_dotenv()
 
@@ -71,6 +72,9 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     requirement_state: RequirementState | None = None
+
+class RAGRequest(BaseModel):
+    query: str
 
 SYSTEM_PROMPT = """
 You are a Requirements Engineering AI assistant for financial software projects.
@@ -259,3 +263,13 @@ def analyze_requirements(request: RequirementState):
     analysis = analysis_agent(request.requirements)
 
     return analysis.model_dump()
+
+@app.post("/rag")
+def rag(request: RAGRequest):
+    result = rag_answer(request.query)
+
+    return {
+        "query": request.query,
+        "answer": result["answer"],
+        "sources": result["sources"],
+    }

@@ -1,0 +1,17 @@
+[
+  {
+    "source": "regulations/sample_rbi_policy.txt",
+    "chunk_id": 0,
+    "content": "Sample Financial Regulation Reference Document: Digital Banking Transaction Controls Source: Sample regulatory reference for project demonstration 1. Customer Authentication Financial transactions shall require customer authentication before execution. 2. Transaction Authorization The system shall verify that the authenticated customer is authorized to perform the requested transaction. 3. Transaction Limits Financial institutions may define transaction limits based on account type, transaction type, customer profile, and risk level. 4. Audit Logging Financial transaction activities should be recorded in an audit trail containing sufficient information to support investigation and compliance review. 5. Data Protection Sensitive customer and transaction information shall be protected against unauthorized access and disclosure. 6. Fraud Monitoring Systems handling financial transactions should support monitoring mechanisms for detecting potentially suspicious or fraudulent activity. 7. Record Retention Relevant transaction and audit records should be retained according to applicable organizational and regulatory retention requirements. IMPORTANT: This document is a fictional/sample reference created for the academic project. It must not be treated as an actual RBI regulation."
+  },
+  {
+    "source": "security/sample_security_policy.txt",
+    "chunk_id": 0,
+    "content": "Sample Financial Security Policy 1. Authentication Users must authenticate before accessing financial operations. 2. Authorization Access to financial operations must be restricted according to user roles and permissions. 3. Sensitive Data Sensitive financial information must not be exposed to unauthorized users. 4. Audit Logs Security-relevant actions must be recorded for auditing and investigation. 5. Access Control Administrative operations must be restricted to authorized personnel. 6. Incident Handling Security incidents should be recorded and investigated according to organizational procedures. IMPORTANT: This document is a fictional/sample security policy created for the academic project."
+  },
+  {
+    "source": "policies/sample_bank_policy.txt",
+    "chunk_id": 0,
+    "content": "Sample Internal Banking Policy 1. Money Transfers Customers may initiate transfers between eligible accounts. 2. Transfer Approval Transactions exceeding configured limits may require additional verification or approval. 3. Failed Transactions Failed transactions must provide an appropriate failure status to the customer. 4. Transaction Records Completed and failed transactions should be recorded for operational and audit purposes. 5. Customer Support Customers should be able to obtain information about the status of their transactions. IMPORTANT: This document is a fictional internal policy created for the academic project."
+  }
+]

@@ -1,0 +1,22 @@
+Sample Financial Security Policy
+
+1. Authentication
+Users must authenticate before accessing financial operations.
+
+2. Authorization
+Access to financial operations must be restricted according to user roles and permissions.
+
+3. Sensitive Data
+Sensitive financial information must not be exposed to unauthorized users.
+
+4. Audit Logs
+Security-relevant actions must be recorded for auditing and investigation.
+
+5. Access Control
+Administrative operations must be restricted to authorized personnel.
+
+6. Incident Handling
+Security incidents should be recorded and investigated according to organizational procedures.
+
+IMPORTANT:
+This document is a fictional/sample security policy created for the academic project.

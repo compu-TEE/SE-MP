@@ -18,6 +18,20 @@ type Requirement = {
   approval_status: string;
 };
 
+type QualityIssue = {
+  type: string;
+  severity: string;
+  description: string;
+  affected_requirement?: string | null;
+  suggestion: string;
+};
+
+type QualityAnalysis = {
+  completeness_score: number;
+  issues: QualityIssue[];
+  summary: string;
+};
+
 type Message = {
   role: "user" | "model";
   content: string;
@@ -28,7 +42,18 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [missingInformation, setMissingInformation] = useState<string[]>([]);
+  const [clarificationQuestions, setClarificationQuestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [qualityAnalysis, setQualityAnalysis] = useState<QualityAnalysis | null>(null);
+  const [ragQuery, setRagQuery] = useState("");
+  const [ragAnswer, setRagAnswer] = useState("");
+  const [ragSources, setRagSources] = useState<
+    {
+      source: string;
+      chunk_id: number;
+      distance: number;
+    }[]
+  >([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
 
@@ -68,6 +93,7 @@ export default function Home() {
 
       setRequirements(data.requirements || []);
       setMissingInformation(data.missing_information || []);
+      setClarificationQuestions(data.clarification_questions || []);
     } catch (error) {
       setMessages([
         ...updatedMessages,
@@ -163,6 +189,62 @@ const regenerateRequirement = async (id: string) => {
         )
       );
     }
+  } finally {
+    setLoading(false);
+  }
+};
+
+const analyzeRequirements = async () => {
+  if (requirements.length === 0 || loading) return;
+
+  setLoading(true);
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/analyze", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        requirements,
+        missing_information: missingInformation,
+        clarification_questions: [],
+      }),
+    });
+
+    const data = await res.json();
+
+    setQualityAnalysis(data);
+  } catch (error) {
+    console.error("Quality analysis failed:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const askKnowledgeBase = async () => {
+  if (!ragQuery.trim() || loading) return;
+
+  setLoading(true);
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/rag", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: ragQuery,
+      }),
+    });
+
+    const data = await res.json();
+
+    setRagAnswer(data.answer || "No answer returned.");
+    setRagSources(data.sources || []);
+  } catch (error) {
+    console.error("RAG request failed:", error);
+    setRagAnswer("Failed to query the knowledge base.");
   } finally {
     setLoading(false);
   }
@@ -349,6 +431,160 @@ const regenerateRequirement = async (id: string) => {
                 ))}
               </div>
             )}
+            {requirements.length > 0 && (
+              <button
+                onClick={analyzeRequirements}
+                disabled={loading}
+                className="mt-4 rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
+              >
+                {loading ? "Analyzing..." : "Analyze Requirements"}
+              </button>
+            )}
+            {qualityAnalysis && (
+  <div className="mt-6 rounded-lg border p-5">
+    <h3 className="mb-4 text-xl font-semibold">
+      Quality Analysis
+    </h3>
+
+    <div className="mb-5">
+      <div className="mb-2 flex justify-between">
+        <span className="font-medium">
+          Completeness
+        </span>
+
+        <span className="font-semibold">
+          {qualityAnalysis.completeness_score}%
+        </span>
+      </div>
+
+      <div className="h-3 rounded-full bg-gray-800">
+        <div
+          className="h-3 rounded-full bg-white"
+          style={{
+            width: `${qualityAnalysis.completeness_score}%`,
+          }}
+        />
+      </div>
+    </div>
+
+    <p className="mb-5 text-sm">
+      {qualityAnalysis.summary}
+          </p>
+
+          <div className="space-y-4">
+            {qualityAnalysis.issues.map((issue, index) => (
+              <div
+                key={index}
+                className="rounded-lg border p-4"
+              >
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-semibold">
+                    {issue.type}
+                  </span>
+
+                  <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-black">
+                    {issue.severity}
+                  </span>
+                </div>
+
+                <p className="mb-2 text-sm">
+                  {issue.description}
+                </p>
+
+                {issue.affected_requirement && (
+                  <p className="mb-2 text-xs text-gray-400">
+                    Requirement: {issue.affected_requirement}
+                  </p>
+                )}
+
+                <p className="text-sm">
+                  <span className="font-medium">
+                    Suggestion:
+                  </span>{" "}
+                  {issue.suggestion}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    <div className="mt-6 rounded-lg border p-5">
+      <h3 className="mb-2 text-xl font-semibold">
+        Financial Knowledge Base
+      </h3>
+
+      <p className="mb-4 text-sm text-gray-500">
+        Ask questions using the project's financial regulations,
+        policies, and security documents.
+      </p>
+
+      <textarea
+        className="mb-3 w-full rounded-lg border p-3 text-white"
+        rows={3}
+        placeholder="Ask about financial regulations, security controls, policies..."
+        value={ragQuery}
+        onChange={(e) => setRagQuery(e.target.value)}
+      />
+
+      <button
+        onClick={askKnowledgeBase}
+        disabled={loading}
+        className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
+      >
+        {loading ? "Searching..." : "Search Knowledge Base"}
+      </button>
+
+      {ragAnswer && (
+        <div className="mt-5 rounded-lg border p-4">
+          <h4 className="mb-2 font-semibold">
+            Answer
+          </h4>
+
+          <p className="whitespace-pre-wrap text-sm">
+            {ragAnswer}
+          </p>
+          {ragSources.length > 0 && (
+            <div className="mt-5">
+              <h4 className="mb-2 font-semibold">
+                Evidence Used
+              </h4>
+
+              <div className="space-y-2">
+                {ragSources.map((source, index) => (
+                  <div
+                    key={index}
+                    className="rounded border p-3 text-sm"
+                  >
+                    <div className="font-medium">
+                      {source.source}
+                    </div>
+
+                    <div className="text-gray-500">
+                      Chunk: {source.chunk_id}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+      {clarificationQuestions.length > 0 && (
+        <div className="mt-6 rounded-lg border p-5">
+          <h3 className="mb-3 font-semibold">
+            Clarification Questions
+          </h3>
+
+          <ul className="list-disc space-y-2 pl-5">
+            {clarificationQuestions.map((question, index) => (
+              <li key={index}>
+                {question}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
             {missingInformation.length > 0 && (
               <div className="mt-6 rounded-lg border p-5">

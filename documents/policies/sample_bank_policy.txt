@@ -1,0 +1,24 @@
+Sample Internal Banking Policy
+
+1. Money Transfers
+
+Customers may initiate transfers between eligible accounts.
+
+2. Transfer Approval
+
+Transactions exceeding configured limits may require additional verification or approval.
+
+3. Failed Transactions
+
+Failed transactions must provide an appropriate failure status to the customer.
+
+4. Transaction Records
+
+Completed and failed transactions should be recorded for operational and audit purposes.
+
+5. Customer Support
+
+Customers should be able to obtain information about the status of their transactions.
+
+IMPORTANT:
+This document is a fictional internal policy created for the academic project.

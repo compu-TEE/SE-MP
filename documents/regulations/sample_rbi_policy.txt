@@ -1,0 +1,36 @@
+Sample Financial Regulation Reference
+
+Document: Digital Banking Transaction Controls
+Source: Sample regulatory reference for project demonstration
+
+1. Customer Authentication
+
+Financial transactions shall require customer authentication before execution.
+
+2. Transaction Authorization
+
+The system shall verify that the authenticated customer is authorized to perform the requested transaction.
+
+3. Transaction Limits
+
+Financial institutions may define transaction limits based on account type, transaction type, customer profile, and risk level.
+
+4. Audit Logging
+
+Financial transaction activities should be recorded in an audit trail containing sufficient information to support investigation and compliance review.
+
+5. Data Protection
+
+Sensitive customer and transaction information shall be protected against unauthorized access and disclosure.
+
+6. Fraud Monitoring
+
+Systems handling financial transactions should support monitoring mechanisms for detecting potentially suspicious or fraudulent activity.
+
+7. Record Retention
+
+Relevant transaction and audit records should be retained according to applicable organizational and regulatory retention requirements.
+
+IMPORTANT:
+This document is a fictional/sample reference created for the academic project.
+It must not be treated as an actual RBI regulation.
