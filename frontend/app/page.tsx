@@ -32,6 +32,19 @@ type QualityAnalysis = {
   summary: string;
 };
 
+type ComplianceFinding = {
+  requirement_id: string;
+  status: string;
+  finding: string;
+  evidence: string[];
+  recommendation: string;
+};
+
+type ComplianceAnalysis = {
+  findings: ComplianceFinding[];
+  summary: string;
+};
+
 type Message = {
   role: "user" | "model";
   content: string;
@@ -45,6 +58,7 @@ export default function Home() {
   const [clarificationQuestions, setClarificationQuestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [qualityAnalysis, setQualityAnalysis] = useState<QualityAnalysis | null>(null);
+  const [complianceAnalysis, setComplianceAnalysis] = useState<ComplianceAnalysis | null>(null);
   const [ragQuery, setRagQuery] = useState("");
   const [ragAnswer, setRagAnswer] = useState("");
   const [ragSources, setRagSources] = useState<
@@ -250,6 +264,40 @@ const askKnowledgeBase = async () => {
   }
 };
 
+const analyzeCompliance = async () => {
+  if (requirements.length === 0 || loading) return;
+
+  setLoading(true);
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/compliance", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        requirements,
+        missing_information: missingInformation,
+        clarification_questions: clarificationQuestions,
+      }),
+    });
+
+    const data = await res.json();
+
+    setComplianceAnalysis(data);
+  } catch (error) {
+    console.error("Compliance analysis failed:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const getComplianceStatus = (requirementId: string) => {
+  return complianceAnalysis?.findings.find(
+    (finding) => finding.requirement_id === requirementId
+  )?.status;
+};
+
   return (
     <main className="min-h-screen p-8">
       <div className="mx-auto max-w-6xl">
@@ -336,6 +384,11 @@ const askKnowledgeBase = async () => {
                         <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-black">
                           {req.approval_status}
                         </span>
+                        {getComplianceStatus(req.id) && (
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-black">
+                            Compliance: {getComplianceStatus(req.id)}
+                          </span>
+                        )}
                       </div>
 
                       {editingId === req.id ? (
@@ -439,6 +492,70 @@ const askKnowledgeBase = async () => {
               >
                 {loading ? "Analyzing..." : "Analyze Requirements"}
               </button>
+            )}
+            {requirements.length > 0 && (
+              <button
+                onClick={analyzeCompliance}
+                disabled={loading}
+                className="mt-2 rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
+              >
+                {loading ? "Checking..." : "Analyze Compliance"}
+              </button>
+            )}
+            {complianceAnalysis && (
+              <div className="mt-6 rounded-lg border p-5">
+                <h3 className="mb-4 text-xl font-semibold">
+                  Compliance Analysis
+                </h3>
+
+                <p className="mb-5 text-sm">
+                  {complianceAnalysis.summary}
+                </p>
+
+                <div className="space-y-4">
+                  {complianceAnalysis.findings.map((finding, index) => (
+                    <div
+                      key={index}
+                      className="rounded-lg border p-4"
+                    >
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="font-semibold">
+                          {finding.requirement_id}
+                        </span>
+
+                        <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-black">
+                          {finding.status}
+                        </span>
+                      </div>
+
+                      <p className="mb-3 text-sm">
+                        {finding.finding}
+                      </p>
+
+                      <div className="mb-3">
+                        <p className="mb-1 text-sm font-medium">
+                          Evidence
+                        </p>
+
+                        <ul className="list-disc pl-5 text-sm">
+                          {finding.evidence.map((source, sourceIndex) => (
+                            <li key={sourceIndex}>
+                              {source}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <p className="text-sm">
+                        <span className="font-medium">
+                          Recommendation:
+                        </span>{" "}
+                        {finding.recommendation}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
             {qualityAnalysis && (
   <div className="mt-6 rounded-lg border p-5">

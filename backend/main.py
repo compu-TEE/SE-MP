@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from pydantic import BaseModel
-from rag import rag_answer
+from rag import rag_answer, retrieve_documents
 
 load_dotenv()
 
@@ -62,6 +62,23 @@ class QualityIssue(BaseModel):
 class QualityAnalysis(BaseModel):
     completeness_score: float
     issues: list[QualityIssue] = []
+    summary: str
+
+class ComplianceFinding(BaseModel):
+    requirement_id: str
+    status: str
+    finding: str
+    evidence: list[str] = []
+    recommendation: str
+
+class SingleComplianceAnalysis(BaseModel):
+    status: str
+    finding: str
+    evidence: list[str] = []
+    recommendation: str
+
+class ComplianceAnalysis(BaseModel):
+    findings: list[ComplianceFinding] = []
     summary: str
 
 class ChatMessage(BaseModel):
@@ -225,6 +242,100 @@ Assumptions: {req.assumptions}
 
     return response.parsed
 
+COMPLIANCE_PROMPT = """
+You are a Financial Software Compliance Analysis Agent.
+
+Analyze the provided software requirement using the provided
+knowledge-base evidence.
+
+For the requirement:
+
+1. Identify relevant compliance, security, audit, privacy,
+   or financial-control considerations.
+
+2. Do not claim that a regulation or policy applies unless
+   the provided evidence supports the claim.
+
+3. Do not invent regulations or policies.
+
+4. If the evidence is insufficient, explicitly say so.
+
+5. Identify the evidence sources that support the finding.
+
+6. Provide a practical recommendation when appropriate.
+
+Possible statuses:
+- relevant
+- no_relevant_evidence
+- insufficient_evidence
+
+Return only structured output.
+"""
+
+
+def compliance_agent(
+    requirements: list[Requirement],
+) -> ComplianceAnalysis:
+
+    if not requirements:
+        return ComplianceAnalysis(
+            findings=[],
+            summary="No requirements were provided for compliance analysis."
+        )
+
+    all_findings = []
+
+    for requirement in requirements:
+        retrieved = retrieve_documents(requirement.statement)
+
+        context = "\n\n".join(
+            f"""
+SOURCE: {item["source"]}
+CHUNK: {item["chunk_id"]}
+CONTENT:
+{item["content"]}
+"""
+            for item in retrieved
+        )
+
+        prompt = (
+            COMPLIANCE_PROMPT
+            + "\n\nREQUIREMENT:\n"
+            + f"ID: {requirement.id}\n"
+            + f"Statement: {requirement.statement}\n"
+            + "\n\nKNOWLEDGE BASE EVIDENCE:\n"
+            + context
+        )
+
+        response = client.models.generate_content(
+            model=os.getenv(
+                "GEMINI_MODEL",
+                "gemini-3.5-flash-lite"
+            ),
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+                "response_schema": SingleComplianceAnalysis,
+            },
+        )
+
+        result = response.parsed
+
+        all_findings.append(
+            ComplianceFinding(
+                requirement_id=requirement.id,
+                status=result.status,
+                finding=result.finding,
+                evidence=result.evidence,
+                recommendation=result.recommendation,
+            )
+        )
+
+    return ComplianceAnalysis(
+        findings=all_findings,
+        summary="Compliance analysis was performed using the available knowledge-base evidence."
+    )
+
 @app.post("/chat")
 def chat(request: ChatRequest):
     conversation = "\n\n".join(
@@ -273,3 +384,9 @@ def rag(request: RAGRequest):
         "answer": result["answer"],
         "sources": result["sources"],
     }
+
+@app.post("/compliance")
+def analyze_compliance(request: RequirementState):
+    analysis = compliance_agent(request.requirements)
+
+    return analysis.model_dump()
