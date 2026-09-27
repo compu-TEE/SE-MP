@@ -58,6 +58,15 @@ type RiskAnalysis = {
   summary: string;
 };
 
+type ProjectCharacteristics = {
+  project_type: string;
+  regulatory_criticality: string;
+  change_frequency: string;
+  risk_level: string;
+  complexity: string;
+  delivery_priority: string;
+};
+
 type Message = {
   role: "user" | "model";
   content: string;
@@ -73,6 +82,15 @@ export default function Home() {
   const [qualityAnalysis, setQualityAnalysis] = useState<QualityAnalysis | null>(null);
   const [complianceAnalysis, setComplianceAnalysis] = useState<ComplianceAnalysis | null>(null);
   const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
+  const [projectCharacteristics, setProjectCharacteristics] =
+  useState<ProjectCharacteristics>({
+    project_type: "",
+    regulatory_criticality: "",
+    change_frequency: "",
+    risk_level: "",
+    complexity: "",
+    delivery_priority: "",
+  });
   const [ragQuery, setRagQuery] = useState("");
   const [ragAnswer, setRagAnswer] = useState("");
   const [ragSources, setRagSources] = useState<
@@ -404,6 +422,211 @@ const getRiskSeverity = (requirementId: string) => {
             >
               {loading ? "Thinking..." : "Send"}
             </button>
+          </div>
+
+          <div className="mb-8 rounded-lg border p-5">
+            <h2 className="mb-4 text-xl font-semibold">
+              Project Characteristics
+            </h2>
+
+            <div className="grid gap-4 md:grid-cols-2">
+
+              {/* Project Type */}
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Project Type
+                </label>
+
+                <select
+                  className="w-full rounded-lg border p-2 bg-black text-white"
+                  value={projectCharacteristics.project_type}
+                  onChange={(e) =>
+                    setProjectCharacteristics({
+                      ...projectCharacteristics,
+                      project_type: e.target.value,
+                    })
+                  }
+                >
+                  <option value="" className="bg-white text-black">
+                    Select
+                  </option>
+                  <option value="digital banking" className="bg-white text-black">
+                    Digital Banking
+                  </option>
+                  <option value="loan processing" className="bg-white text-black">
+                    Loan Processing
+                  </option>
+                  <option value="payments" className="bg-white text-black">
+                    Payments
+                  </option>
+                  <option value="fraud detection" className="bg-white text-black">
+                    Fraud Detection
+                  </option>
+                  <option value="insurance" className="bg-white text-black">
+                    Insurance
+                  </option>
+                  <option value="regulatory reporting" className="bg-white text-black">
+                    Regulatory Reporting
+                  </option>
+                </select>
+              </div>
+
+              {/* Regulatory Criticality */}
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Regulatory Criticality
+                </label>
+
+                <select
+                  className="w-full rounded-lg border p-2 bg-black text-white"
+                  value={projectCharacteristics.regulatory_criticality}
+                  onChange={(e) =>
+                    setProjectCharacteristics({
+                      ...projectCharacteristics,
+                      regulatory_criticality: e.target.value,
+                    })
+                  }
+                >
+                  <option value="" className="bg-white text-black">
+                    Select
+                  </option>
+                  <option value="low" className="bg-white text-black">
+                    Low
+                  </option>
+                  <option value="medium" className="bg-white text-black">
+                    Medium
+                  </option>
+                  <option value="high" className="bg-white text-black">
+                    High
+                  </option>
+                </select>
+              </div>
+
+              {/* Change Frequency */}
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Change Frequency
+                </label>
+
+                <select
+                  className="w-full rounded-lg border p-2 bg-black text-white"
+                  value={projectCharacteristics.change_frequency}
+                  onChange={(e) =>
+                    setProjectCharacteristics({
+                      ...projectCharacteristics,
+                      change_frequency: e.target.value,
+                    })
+                  }
+                >
+                  <option value="" className="bg-white text-black">
+                    Select
+                  </option>
+                  <option value="low" className="bg-white text-black">
+                    Low
+                  </option>
+                  <option value="medium" className="bg-white text-black">
+                    Medium
+                  </option>
+                  <option value="high" className="bg-white text-black">
+                    High
+                  </option>
+                </select>
+              </div>
+
+              {/* Risk Level */}
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Risk Level
+                </label>
+
+                <select
+                  className="w-full rounded-lg border p-2 bg-black text-white"
+                  value={projectCharacteristics.risk_level}
+                  onChange={(e) =>
+                    setProjectCharacteristics({
+                      ...projectCharacteristics,
+                      risk_level: e.target.value,
+                    })
+                  }
+                >
+                  <option value="" className="bg-white text-black">
+                    Select
+                  </option>
+                  <option value="low" className="bg-white text-black">
+                    Low
+                  </option>
+                  <option value="medium" className="bg-white text-black">
+                    Medium
+                  </option>
+                  <option value="high" className="bg-white text-black">
+                    High
+                  </option>
+                </select>
+              </div>
+
+              {/* Complexity */}
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Complexity
+                </label>
+
+                <select
+                  className="w-full rounded-lg border p-2 bg-black text-white"
+                  value={projectCharacteristics.complexity}
+                  onChange={(e) =>
+                    setProjectCharacteristics({
+                      ...projectCharacteristics,
+                      complexity: e.target.value,
+                    })
+                  }
+                >
+                  <option value="" className="bg-white text-black">
+                    Select
+                  </option>
+                  <option value="low" className="bg-white text-black">
+                    Low
+                  </option>
+                  <option value="medium" className="bg-white text-black">
+                    Medium
+                  </option>
+                  <option value="high" className="bg-white text-black">
+                    High
+                  </option>
+                </select>
+              </div>
+
+              {/* Delivery Priority */}
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Delivery Priority
+                </label>
+
+                <select
+                  className="w-full rounded-lg border p-2 bg-black text-white"
+                  value={projectCharacteristics.delivery_priority}
+                  onChange={(e) =>
+                    setProjectCharacteristics({
+                      ...projectCharacteristics,
+                      delivery_priority: e.target.value,
+                    })
+                  }
+                >
+                  <option value="" className="bg-white text-black">
+                    Select
+                  </option>
+                  <option value="speed" className="bg-white text-black">
+                    Speed
+                  </option>
+                  <option value="balanced" className="bg-white text-black">
+                    Balanced
+                  </option>
+                  <option value="assurance" className="bg-white text-black">
+                    Assurance
+                  </option>
+                </select>
+              </div>
+
+            </div>
           </div>
 
           {/* Requirements */}

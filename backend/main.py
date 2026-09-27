@@ -97,6 +97,30 @@ class RiskAnalysis(BaseModel):
     findings: list[RiskFinding] = []
     summary: str
 
+class ProjectCharacteristics(BaseModel):
+    project_type: str
+    regulatory_criticality: str
+    change_frequency: str
+    risk_level: str
+    complexity: str
+    delivery_priority: str
+
+
+class SDLCRecommendation(BaseModel):
+    recommended_model: str
+    reasoning: str
+    key_factors: list[str] = []
+
+class SDLCWorkflowStep(BaseModel):
+    step: int
+    phase: str
+    description: str
+
+
+class SDLCWorkflow(BaseModel):
+    model: str
+    workflow: list[SDLCWorkflowStep]
+
 class ChatMessage(BaseModel):
     role: str
     content: str
@@ -454,6 +478,108 @@ CONTENT:
         summary="Risk analysis was performed using the available requirements and knowledge-base evidence."
     )
 
+SDLC_PROMPT = """
+You are an SDLC methodology selection agent for financial software projects.
+
+Based on the project characteristics provided, recommend the most suitable
+SDLC methodology.
+
+Possible methodologies:
+- Agile
+- DevSecOps
+- Spiral
+- V-Model
+- Waterfall
+- Hybrid
+
+Consider:
+- Project type
+- Regulatory criticality
+- Change frequency
+- Risk level
+- Complexity
+- Delivery priority
+
+Return ONLY valid JSON in this format:
+
+{
+  "recommended_model": "string",
+  "reasoning": "string",
+  "key_factors": ["factor 1", "factor 2", "factor 3"]
+}
+
+The recommendation must be specific to the provided project characteristics.
+Do not invent regulations or external facts.
+"""
+
+def sdlc_agent(characteristics: ProjectCharacteristics):
+    response = client.models.generate_content(
+        model=os.getenv("GEMINI_MODEL"),
+        contents=(
+            SDLC_PROMPT
+            + "\n\nProject Characteristics:\n"
+            + characteristics.model_dump_json(indent=2)
+        ),
+        config={
+            "response_mime_type": "application/json",
+            "response_schema": SDLCRecommendation,
+        },
+    )
+
+    return response.parsed
+
+SDLC_WORKFLOW_PROMPT = """
+You are an SDLC workflow generation agent for financial software projects.
+
+Generate a project-specific development workflow based on:
+- The selected SDLC model
+- Project characteristics
+
+The workflow should include appropriate phases such as:
+requirements, analysis, architecture/design, development, testing,
+security/compliance validation, approval, deployment, and monitoring.
+
+Adapt the workflow to the selected SDLC model and project risk.
+
+Return ONLY valid JSON in this format:
+
+{
+  "model": "string",
+  "workflow": [
+    {
+      "step": 1,
+      "phase": "string",
+      "description": "string"
+    }
+  ]
+}
+
+Do not invent specific regulations or external facts.
+"""
+
+def sdlc_workflow_agent(
+    characteristics: ProjectCharacteristics,
+    recommendation: SDLCRecommendation
+):
+    prompt = (
+        SDLC_WORKFLOW_PROMPT
+        + "\n\nProject Characteristics:\n"
+        + characteristics.model_dump_json(indent=2)
+        + "\n\nSDLC Recommendation:\n"
+        + recommendation.model_dump_json(indent=2)
+    )
+
+    response = client.models.generate_content(
+        model=os.getenv("GEMINI_MODEL"),
+        contents=prompt,
+        config={
+            "response_mime_type": "application/json",
+            "response_schema": SDLCWorkflow,
+        },
+    )
+
+    return response.parsed
+
 @app.post("/chat")
 def chat(request: ChatRequest):
     conversation = "\n\n".join(
@@ -514,3 +640,18 @@ def analyze_risk(request: RequirementState):
     analysis = risk_agent(request.requirements)
 
     return analysis.model_dump()
+
+@app.post("/sdlc", response_model=SDLCRecommendation)
+def recommend_sdlc(characteristics: ProjectCharacteristics):
+    return sdlc_agent(characteristics)
+
+@app.post("/sdlc/workflow", response_model=SDLCWorkflow)
+def generate_sdlc_workflow(
+    characteristics: ProjectCharacteristics
+):
+    recommendation = sdlc_agent(characteristics)
+
+    return sdlc_workflow_agent(
+        characteristics,
+        recommendation
+    )
