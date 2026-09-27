@@ -82,6 +82,10 @@ export default function Home() {
   const [qualityAnalysis, setQualityAnalysis] = useState<QualityAnalysis | null>(null);
   const [complianceAnalysis, setComplianceAnalysis] = useState<ComplianceAnalysis | null>(null);
   const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
+  const [userStoriesContent, setUserStoriesContent] = useState("");
+  const [useCasesContent, setUseCasesContent] = useState("");
+  const [acceptanceCriteriaContent, setAcceptanceCriteriaContent] = useState("");
+  const [traceabilityContent, setTraceabilityContent] = useState("");
   const [projectCharacteristics, setProjectCharacteristics] =
   useState<ProjectCharacteristics>({
     project_type: "",
@@ -102,7 +106,8 @@ export default function Home() {
   >([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
-
+  const [srsContent, setSrsContent] = useState("");
+  const [documentationLoading, setDocumentationLoading] = useState(false);
   const sendMessage = async () => {
     if (!message.trim() || loading) return;
 
@@ -362,6 +367,42 @@ const getRiskSeverity = (requirementId: string) => {
   return riskAnalysis?.findings.find(
     (risk) => risk.requirement_id === requirementId
   )?.severity;
+};
+
+const generateSRS = async () => {
+  if (requirements.length === 0) {
+    alert("No requirements available.");
+    return;
+  }
+
+  setDocumentationLoading(true);
+
+  try {
+    const response = await fetch("http://127.0.0.1:8000/documentation", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requirements),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to generate documentation");
+    }
+
+    const data = await response.json();
+
+    setSrsContent(data.srs.content);
+    setUserStoriesContent(data.user_stories.content);
+    setUseCasesContent(data.use_cases.content);
+    setAcceptanceCriteriaContent(data.acceptance_criteria.content);
+    setTraceabilityContent(data.traceability.content);
+  } catch (error) {
+    console.error(error);
+    alert("Failed to generate SRS.");
+  } finally {
+    setDocumentationLoading(false);
+  }
 };
 
   return (
@@ -628,6 +669,74 @@ const getRiskSeverity = (requirementId: string) => {
 
             </div>
           </div>
+
+          <button
+            onClick={generateSRS}
+            disabled={documentationLoading || requirements.length === 0}
+            className="rounded-lg border px-4 py-2 hover:bg-white hover:text-black disabled:opacity-50"
+          >
+            {documentationLoading ? "Generating SRS..." : "Generate SRS"}
+          </button>
+
+          {srsContent && (
+            <div className="mt-6 rounded-lg border p-5">
+              <h2 className="mb-4 text-xl font-semibold">
+                Software Requirements Specification
+              </h2>
+
+              <div className="whitespace-pre-wrap text-sm leading-6">
+                {srsContent}
+              </div>
+            </div>
+          )}
+
+          {userStoriesContent && (
+            <div className="mt-6 rounded-lg border p-5">
+              <h2 className="mb-4 text-xl font-semibold">
+                User Stories
+              </h2>
+
+              <div className="whitespace-pre-wrap text-sm leading-6">
+                {userStoriesContent}
+              </div>
+            </div>
+          )}
+
+          {useCasesContent && (
+            <div className="mt-6 rounded-lg border p-5">
+              <h2 className="mb-4 text-xl font-semibold">
+                Use Cases
+              </h2>
+
+              <div className="whitespace-pre-wrap text-sm leading-6">
+                {useCasesContent}
+              </div>
+            </div>
+          )}
+
+          {acceptanceCriteriaContent && (
+            <div className="mt-6 rounded-lg border p-5">
+              <h2 className="mb-4 text-xl font-semibold">
+                Acceptance Criteria
+              </h2>
+
+              <div className="whitespace-pre-wrap text-sm leading-6">
+                {acceptanceCriteriaContent}
+              </div>
+            </div>
+          )}
+
+          {traceabilityContent && (
+            <div className="mt-6 rounded-lg border p-5">
+              <h2 className="mb-4 text-xl font-semibold">
+                Traceability Matrix
+              </h2>
+
+              <div className="whitespace-pre-wrap text-sm leading-6">
+                {traceabilityContent}
+              </div>
+            </div>
+          )}
 
           {/* Requirements */}
           <div>

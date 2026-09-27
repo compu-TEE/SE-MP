@@ -121,6 +121,18 @@ class SDLCWorkflow(BaseModel):
     model: str
     workflow: list[SDLCWorkflowStep]
 
+class DocumentationArtifact(BaseModel):
+    title: str
+    content: str
+
+
+class DocumentationPackage(BaseModel):
+    srs: DocumentationArtifact
+    user_stories: DocumentationArtifact
+    use_cases: DocumentationArtifact
+    acceptance_criteria: DocumentationArtifact
+    traceability: DocumentationArtifact
+
 class ChatMessage(BaseModel):
     role: str
     content: str
@@ -580,6 +592,62 @@ def sdlc_workflow_agent(
 
     return response.parsed
 
+DOCUMENTATION_PROMPT = """
+You are a software documentation agent for financial software projects.
+
+Generate documentation from the provided validated requirements.
+
+Create the following five artifacts:
+
+1. SRS
+   - System overview
+   - Functional requirements
+   - Non-functional requirements
+   - Constraints
+
+2. User Stories
+   - Convert the requirements into clear user stories.
+   - Use the format:
+     As a <user>, I want <goal>, so that <benefit>.
+
+3. Use Cases
+   - Identify relevant actors.
+   - Describe the main interactions between actors and the system.
+
+4. Acceptance Criteria
+   - Provide testable acceptance criteria for the requirements.
+
+5. Traceability
+   - Map each requirement to the generated documentation artifacts.
+   - Use requirement IDs where available.
+
+Only use information contained in the provided requirements.
+Do not invent regulations, requirements, users, or system capabilities.
+
+Return ONLY valid JSON matching the requested schema.
+"""
+
+def documentation_agent(requirements: list[Requirement]):
+    prompt = (
+        DOCUMENTATION_PROMPT
+        + "\n\nValidated Requirements:\n"
+        + "\n".join(
+            req.model_dump_json(indent=2)
+            for req in requirements
+        )
+    )
+
+    response = client.models.generate_content(
+        model=os.getenv("GEMINI_MODEL"),
+        contents=prompt,
+        config={
+            "response_mime_type": "application/json",
+            "response_schema": DocumentationPackage,
+        },
+    )
+
+    return response.parsed
+
 @app.post("/chat")
 def chat(request: ChatRequest):
     conversation = "\n\n".join(
@@ -655,3 +723,7 @@ def generate_sdlc_workflow(
         characteristics,
         recommendation
     )
+
+@app.post("/documentation", response_model=DocumentationPackage)
+def generate_documentation(requirements: list[Requirement]):
+    return documentation_agent(requirements)
