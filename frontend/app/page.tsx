@@ -45,6 +45,19 @@ type ComplianceAnalysis = {
   summary: string;
 };
 
+type RiskFinding = {
+  requirement_id: string;
+  risk_type: string;
+  severity: string;
+  description: string;
+  mitigation: string;
+};
+
+type RiskAnalysis = {
+  findings: RiskFinding[];
+  summary: string;
+};
+
 type Message = {
   role: "user" | "model";
   content: string;
@@ -59,6 +72,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [qualityAnalysis, setQualityAnalysis] = useState<QualityAnalysis | null>(null);
   const [complianceAnalysis, setComplianceAnalysis] = useState<ComplianceAnalysis | null>(null);
+  const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
   const [ragQuery, setRagQuery] = useState("");
   const [ragAnswer, setRagAnswer] = useState("");
   const [ragSources, setRagSources] = useState<
@@ -298,6 +312,40 @@ const getComplianceStatus = (requirementId: string) => {
   )?.status;
 };
 
+const analyzeRisk = async () => {
+  if (requirements.length === 0 || loading) return;
+
+  setLoading(true);
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/risk", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        requirements,
+        missing_information: missingInformation,
+        clarification_questions: clarificationQuestions,
+      }),
+    });
+
+    const data = await res.json();
+
+    setRiskAnalysis(data);
+  } catch (error) {
+    console.error("Risk analysis failed:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const getRiskSeverity = (requirementId: string) => {
+  return riskAnalysis?.findings.find(
+    (risk) => risk.requirement_id === requirementId
+  )?.severity;
+};
+
   return (
     <main className="min-h-screen p-8">
       <div className="mx-auto max-w-6xl">
@@ -384,6 +432,11 @@ const getComplianceStatus = (requirementId: string) => {
                         <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-black">
                           {req.approval_status}
                         </span>
+                        {getRiskSeverity(req.id) && (
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-black">
+                            Risk: {getRiskSeverity(req.id)}
+                          </span>
+                        )}
                         {getComplianceStatus(req.id) && (
                           <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-black">
                             Compliance: {getComplianceStatus(req.id)}
@@ -502,6 +555,15 @@ const getComplianceStatus = (requirementId: string) => {
                 {loading ? "Checking..." : "Analyze Compliance"}
               </button>
             )}
+            {requirements.length > 0 && (
+              <button
+                onClick={analyzeRisk}
+                disabled={loading}
+                className="mt-2 rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
+              >
+                {loading ? "Analyzing..." : "Analyze Risk"}
+              </button>
+            )}
             {complianceAnalysis && (
               <div className="mt-6 rounded-lg border p-5">
                 <h3 className="mb-4 text-xl font-semibold">
@@ -557,6 +619,51 @@ const getComplianceStatus = (requirementId: string) => {
                 </div>
               </div>
             )}
+            {riskAnalysis && (
+            <div className="mt-6 rounded-lg border p-5">
+              <h3 className="mb-4 text-xl font-semibold">
+                Security & Risk Analysis
+              </h3>
+
+              <p className="mb-5 text-sm">
+                {riskAnalysis.summary}
+              </p>
+
+              <div className="space-y-4">
+                {riskAnalysis.findings.map((risk, index) => (
+                  <div
+                    key={index}
+                    className="rounded-lg border p-4"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-semibold">
+                        {risk.risk_type}
+                      </span>
+
+                      <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-black">
+                        {risk.severity}
+                      </span>
+                    </div>
+
+                    <p className="mb-2 text-xs text-gray-500">
+                      Requirement: {risk.requirement_id}
+                    </p>
+
+                    <p className="mb-3 text-sm">
+                      {risk.description}
+                    </p>
+
+                    <p className="text-sm">
+                      <span className="font-medium">
+                        Mitigation:
+                      </span>{" "}
+                      {risk.mitigation}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
             {qualityAnalysis && (
   <div className="mt-6 rounded-lg border p-5">
     <h3 className="mb-4 text-xl font-semibold">

@@ -81,6 +81,22 @@ class ComplianceAnalysis(BaseModel):
     findings: list[ComplianceFinding] = []
     summary: str
 
+class RiskFinding(BaseModel):
+    requirement_id: str
+    risk_type: str
+    severity: str
+    description: str
+    mitigation: str
+
+class SingleRiskAnalysis(BaseModel):
+    risk_type: str
+    severity: str
+    description: str
+    mitigation: str
+class RiskAnalysis(BaseModel):
+    findings: list[RiskFinding] = []
+    summary: str
+
 class ChatMessage(BaseModel):
     role: str
     content: str
@@ -336,6 +352,108 @@ CONTENT:
         summary="Compliance analysis was performed using the available knowledge-base evidence."
     )
 
+RISK_PROMPT = """
+You are a Security and Risk Analysis Agent for financial software.
+
+Analyze the provided software requirement and identify realistic
+security, privacy, financial, operational, or availability risks.
+
+Consider:
+
+- Authentication and authorization
+- Sensitive financial data
+- Fraud
+- Unauthorized transactions
+- Auditability
+- Data integrity
+- Availability
+- Failure handling
+- Access control
+- Privacy
+- Transaction limits
+
+Rules:
+
+1. Only identify risks that are supported by the requirement
+   and provided knowledge-base evidence.
+
+2. Do not invent regulations.
+
+3. Do not assume a specific attack has occurred.
+
+4. Give each risk a severity:
+   low, medium, or high.
+
+5. Provide a practical mitigation for each identified risk.
+
+6. If there are no meaningful risks supported by the available
+   information, return an empty findings list.
+
+Return structured output only.
+"""
+def risk_agent(
+    requirements: list[Requirement],
+) -> RiskAnalysis:
+
+    if not requirements:
+        return RiskAnalysis(
+            findings=[],
+            summary="No requirements were provided for risk analysis."
+        )
+
+    all_findings = []
+
+    for requirement in requirements:
+        retrieved = retrieve_documents(requirement.statement)
+
+        context = "\n\n".join(
+            f"""
+SOURCE: {item["source"]}
+CHUNK: {item["chunk_id"]}
+CONTENT:
+{item["content"]}
+"""
+            for item in retrieved
+        )
+
+        prompt = (
+            RISK_PROMPT
+            + "\n\nREQUIREMENT:\n"
+            + f"ID: {requirement.id}\n"
+            + f"Statement: {requirement.statement}\n"
+            + "\n\nKNOWLEDGE BASE EVIDENCE:\n"
+            + context
+        )
+
+        response = client.models.generate_content(
+            model=os.getenv(
+                "GEMINI_MODEL",
+                "gemini-3.5-flash-lite"
+            ),
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+                "response_schema": SingleRiskAnalysis,
+            },
+        )
+
+        result = response.parsed
+
+        all_findings.append(
+            RiskFinding(
+                requirement_id=requirement.id,
+                risk_type=result.risk_type,
+                severity=result.severity,
+                description=result.description,
+                mitigation=result.mitigation,
+            )
+        )
+
+    return RiskAnalysis(
+        findings=all_findings,
+        summary="Risk analysis was performed using the available requirements and knowledge-base evidence."
+    )
+
 @app.post("/chat")
 def chat(request: ChatRequest):
     conversation = "\n\n".join(
@@ -388,5 +506,11 @@ def rag(request: RAGRequest):
 @app.post("/compliance")
 def analyze_compliance(request: RequirementState):
     analysis = compliance_agent(request.requirements)
+
+    return analysis.model_dump()
+
+@app.post("/risk")
+def analyze_risk(request: RequirementState):
+    analysis = risk_agent(request.requirements)
 
     return analysis.model_dump()
