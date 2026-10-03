@@ -6,6 +6,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from pydantic import BaseModel
 from rag import rag_answer, retrieve_documents
+from models import (
+    Project,
+    Requirement as DBRequirement,
+    QualityAnalysis as DBQualityAnalysis,
+    ComplianceFinding as DBComplianceFinding,
+    RiskFinding as DBRiskFinding,
+    SDLCRecommendation as DBSDLCRecommendation,
+    DocumentationArtifact as DBDocumentationArtifact
+)
+from database import SessionLocal
 
 load_dotenv()
 
@@ -732,11 +742,91 @@ Rules:
         },
     )
 
-    return response.parsed.model_dump()
+    result = response.parsed.model_dump()
+
+    # Save requirements to PostgreSQL
+    db = SessionLocal()
+
+    try:
+        project = db.query(Project).first()
+
+        if not project:
+            project = Project(
+                name="Financial Requirements AI Project",
+                description="Automatically extracted financial software requirements"
+            )
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+
+        for req in result.get("requirements", []):
+            requirement = DBRequirement(
+                project_id=project.id,
+                requirement_code=req.get("id"),
+                statement=req.get("statement"),
+                category=req.get("category"),
+                source_stakeholder=req.get("source_stakeholder"),
+                business_justification=req.get("business_justification"),
+                priority=req.get("priority"),
+                dependencies=req.get("dependencies", []),
+                assumptions=req.get("assumptions", []),
+                acceptance_criteria=req.get("acceptance_criteria", []),
+                applicable_regulations=req.get("applicable_regulations", []),
+                risk_level=req.get("risk_level"),
+                confidence_score=req.get("confidence_score"),
+                approval_status=req.get("approval_status", "pending"),
+            )
+
+            db.add(requirement)
+
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+    return result
 
 @app.post("/analyze")
 def analyze_requirements(request: RequirementState):
     analysis = analysis_agent(request.requirements)
+
+    db = SessionLocal()
+
+    try:
+        project = db.query(Project).first()
+
+        if not project:
+            project = Project(
+                name="Financial Requirements AI Project",
+                description="Automatically extracted financial software requirements"
+            )
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+
+        quality_record = DBQualityAnalysis(
+            project_id=project.id,
+            completeness_score=analysis.completeness_score,
+            summary=analysis.summary,
+            issues=[
+                issue.model_dump()
+                for issue in analysis.issues
+            ],
+        )
+
+        db.add(quality_record)
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
 
     return analysis.model_dump()
 
@@ -754,17 +844,128 @@ def rag(request: RAGRequest):
 def analyze_compliance(request: RequirementState):
     analysis = compliance_agent(request.requirements)
 
+    db = SessionLocal()
+
+    try:
+        project = db.query(Project).first()
+
+        if not project:
+            project = Project(
+                name="Financial Requirements AI Project",
+                description="Automatically extracted financial software requirements"
+            )
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+
+        for finding in analysis.findings:
+            compliance_record = DBComplianceFinding(
+                project_id=project.id,
+                requirement_code=finding.requirement_id,
+                status=finding.status,
+                finding=finding.finding,
+                evidence=finding.evidence,
+                recommendation=finding.recommendation,
+            )
+
+            db.add(compliance_record)
+
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
     return analysis.model_dump()
 
 @app.post("/risk")
 def analyze_risk(request: RequirementState):
     analysis = risk_agent(request.requirements)
 
+    db = SessionLocal()
+
+    try:
+        project = db.query(Project).first()
+
+        if not project:
+            project = Project(
+                name="Financial Requirements AI Project",
+                description="Automatically extracted financial software requirements"
+            )
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+
+        for finding in analysis.findings:
+            risk_record = DBRiskFinding(
+                project_id=project.id,
+                requirement_code=finding.requirement_id,
+                risk_type=finding.risk_type,
+                severity=finding.severity,
+                description=finding.description,
+                mitigation=finding.mitigation,
+            )
+
+            db.add(risk_record)
+
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
     return analysis.model_dump()
 
 @app.post("/sdlc", response_model=SDLCRecommendation)
 def recommend_sdlc(characteristics: ProjectCharacteristics):
-    return sdlc_agent(characteristics)
+
+    recommendation = sdlc_agent(characteristics)
+
+    db = SessionLocal()
+
+    try:
+        project = db.query(Project).first()
+
+        if not project:
+            project = Project(
+                name="Financial Requirements AI Project",
+                description="Automatically extracted financial software requirements"
+            )
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+
+        sdlc_record = DBSDLCRecommendation(
+            project_id=project.id,
+            project_type=characteristics.project_type,
+            regulatory_criticality=characteristics.regulatory_criticality,
+            change_frequency=characteristics.change_frequency,
+            risk_level=characteristics.risk_level,
+            complexity=characteristics.complexity,
+            delivery_priority=characteristics.delivery_priority,
+            requirements_clarity=characteristics.requirements_clarity,
+            recommended_model=recommendation.recommended_model,
+            reasoning=recommendation.reasoning,
+            key_factors=recommendation.key_factors,
+        )
+
+        db.add(sdlc_record)
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+    return recommendation
 
 @app.post("/sdlc/workflow", response_model=SDLCWorkflow)
 def generate_sdlc_workflow(
@@ -779,4 +980,184 @@ def generate_sdlc_workflow(
 
 @app.post("/documentation", response_model=DocumentationPackage)
 def generate_documentation(requirements: list[Requirement]):
-    return documentation_agent(requirements)
+
+    documentation = documentation_agent(requirements)
+
+    db = SessionLocal()
+
+    try:
+        project = db.query(Project).first()
+
+        if not project:
+            project = Project(
+                name="Financial Requirements AI Project",
+                description="Automatically extracted financial software requirements"
+            )
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+
+        artifacts = [
+            documentation.srs,
+            documentation.user_stories,
+            documentation.use_cases,
+            documentation.acceptance_criteria,
+            documentation.traceability,
+        ]
+
+        artifact_types = [
+            "SRS",
+            "User Stories",
+            "Use Cases",
+            "Acceptance Criteria",
+            "Traceability",
+        ]
+
+        for artifact_type, artifact in zip(artifact_types, artifacts):
+
+            record = DBDocumentationArtifact(
+                project_id=project.id,
+                artifact_type=artifact_type,
+                title=artifact.title,
+                content=artifact.content,
+            )
+
+            db.add(record)
+
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+    return documentation
+
+@app.get("/project")
+def get_project():
+
+    db = SessionLocal()
+
+    try:
+        project = db.query(Project).first()
+
+        if not project:
+            return {"message": "No project found"}
+
+        requirements = db.query(DBRequirement).filter(
+            DBRequirement.project_id == project.id
+        ).all()
+
+        quality_analysis = db.query(DBQualityAnalysis).filter(
+            DBQualityAnalysis.project_id == project.id
+        ).all()
+
+        compliance_findings = db.query(DBComplianceFinding).filter(
+            DBComplianceFinding.project_id == project.id
+        ).all()
+
+        risk_findings = db.query(DBRiskFinding).filter(
+            DBRiskFinding.project_id == project.id
+        ).all()
+
+        sdlc_recommendations = db.query(DBSDLCRecommendation).filter(
+            DBSDLCRecommendation.project_id == project.id
+        ).all()
+
+        documentation_artifacts = db.query(DBDocumentationArtifact).filter(
+            DBDocumentationArtifact.project_id == project.id
+        ).all()
+
+        return {
+            "project": {
+                "id": project.id,
+                "name": project.name,
+                "description": project.description,
+            },
+
+            "requirements": [
+                {
+                    "id": req.id,
+                    "requirement_code": req.requirement_code,
+                    "statement": req.statement,
+                    "category": req.category,
+                    "source_stakeholder": req.source_stakeholder,
+                    "business_justification": req.business_justification,
+                    "priority": req.priority,
+                    "dependencies": req.dependencies,
+                    "assumptions": req.assumptions,
+                    "acceptance_criteria": req.acceptance_criteria,
+                    "applicable_regulations": req.applicable_regulations,
+                    "risk_level": req.risk_level,
+                    "confidence_score": req.confidence_score,
+                    "approval_status": req.approval_status,
+                }
+                for req in requirements
+            ],
+
+            "quality_analysis": [
+                {
+                    "id": qa.id,
+                    "completeness_score": qa.completeness_score,
+                    "summary": qa.summary,
+                    "issues": qa.issues,
+                }
+                for qa in quality_analysis
+            ],
+
+            "compliance_findings": [
+                {
+                    "id": finding.id,
+                    "requirement_code": finding.requirement_code,
+                    "status": finding.status,
+                    "finding": finding.finding,
+                    "evidence": finding.evidence,
+                    "recommendation": finding.recommendation,
+                }
+                for finding in compliance_findings
+            ],
+
+            "risk_findings": [
+                {
+                    "id": finding.id,
+                    "requirement_code": finding.requirement_code,
+                    "risk_type": finding.risk_type,
+                    "severity": finding.severity,
+                    "description": finding.description,
+                    "mitigation": finding.mitigation,
+                }
+                for finding in risk_findings
+            ],
+
+            "sdlc_recommendations": [
+                {
+                    "id": recommendation.id,
+                    "project_type": recommendation.project_type,
+                    "regulatory_criticality": recommendation.regulatory_criticality,
+                    "change_frequency": recommendation.change_frequency,
+                    "risk_level": recommendation.risk_level,
+                    "complexity": recommendation.complexity,
+                    "delivery_priority": recommendation.delivery_priority,
+                    "requirements_clarity": recommendation.requirements_clarity,
+                    "recommended_model": recommendation.recommended_model,
+                    "reasoning": recommendation.reasoning,
+                    "key_factors": recommendation.key_factors,
+                }
+                for recommendation in sdlc_recommendations
+            ],
+
+            "documentation_artifacts": [
+                {
+                    "id": artifact.id,
+                    "artifact_type": artifact.artifact_type,
+                    "title": artifact.title,
+                    "content": artifact.content,
+                }
+                for artifact in documentation_artifacts
+            ],
+        }
+
+    finally:
+        db.close()
