@@ -65,6 +65,24 @@ type ProjectCharacteristics = {
   risk_level: string;
   complexity: string;
   delivery_priority: string;
+  requirements_clarity: string;
+};
+
+type SDLCRecommendation = {
+  recommended_model: string;
+  reasoning: string;
+  key_factors: string[];
+};
+
+type SDLCWorkflowStep = {
+  step: number;
+  phase: string;
+  description: string;
+};
+
+type SDLCWorkflow = {
+  model: string;
+  workflow: SDLCWorkflowStep[];
 };
 
 type Message = {
@@ -87,14 +105,18 @@ export default function Home() {
   const [acceptanceCriteriaContent, setAcceptanceCriteriaContent] = useState("");
   const [traceabilityContent, setTraceabilityContent] = useState("");
   const [projectCharacteristics, setProjectCharacteristics] =
-  useState<ProjectCharacteristics>({
-    project_type: "",
-    regulatory_criticality: "",
-    change_frequency: "",
-    risk_level: "",
-    complexity: "",
-    delivery_priority: "",
-  });
+    useState<ProjectCharacteristics>({
+      project_type: "",
+      regulatory_criticality: "",
+      change_frequency: "",
+      risk_level: "",
+      complexity: "",
+      delivery_priority: "",
+      requirements_clarity: "",
+    });
+  const [sdlcRecommendation, setSdlcRecommendation] = useState<SDLCRecommendation | null>(null);
+  const [sdlcWorkflow, setSdlcWorkflow] = useState<SDLCWorkflow | null>(null);
+  const [sdlcLoading, setSdlcLoading] = useState(false);
   const [ragQuery, setRagQuery] = useState("");
   const [ragAnswer, setRagAnswer] = useState("");
   const [ragSources, setRagSources] = useState<
@@ -405,6 +427,66 @@ const generateSRS = async () => {
   }
 };
 
+const recommendSDLC = async () => {
+  if (Object.values(projectCharacteristics).some((value) => !value)) {
+    alert("Please select all project characteristics.");
+    return;
+  }
+
+  setSdlcLoading(true);
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/sdlc", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(projectCharacteristics),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to get SDLC recommendation");
+    }
+
+    const data = await res.json();
+
+    setSdlcRecommendation(data);
+    setSdlcWorkflow(null);
+  } catch (error) {
+    console.error(error);
+    alert("Failed to generate SDLC recommendation.");
+  } finally {
+    setSdlcLoading(false);
+  }
+};
+
+const generateSDLCWorkflow = async () => {
+  setSdlcLoading(true);
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/sdlc/workflow", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(projectCharacteristics),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to generate SDLC workflow");
+    }
+
+    const data = await res.json();
+
+    setSdlcWorkflow(data);
+  } catch (error) {
+    console.error(error);
+    alert("Failed to generate SDLC workflow.");
+  } finally {
+    setSdlcLoading(false);
+  }
+};
+
   return (
     <main className="min-h-screen p-8">
       <div className="mx-auto max-w-6xl">
@@ -667,9 +749,106 @@ const generateSRS = async () => {
                 </select>
               </div>
 
+              {/* Requirements Clarity */}
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Requirements Clarity
+                </label>
+
+                <select
+                  className="w-full rounded-lg border p-2 bg-black text-white"
+                  value={projectCharacteristics.requirements_clarity}
+                  onChange={(e) =>
+                    setProjectCharacteristics({
+                      ...projectCharacteristics,
+                      requirements_clarity: e.target.value,
+                    })
+                  }
+                >
+                  <option value="" className="bg-white text-black">
+                    Select
+                  </option>
+
+                  <option value="clear" className="bg-white text-black">
+                    Clear
+                  </option>
+
+                  <option value="partially clear" className="bg-white text-black">
+                    Partially Clear
+                  </option>
+
+                  <option value="unclear" className="bg-white text-black">
+                    Unclear
+                  </option>
+                </select>
+              </div>
+
             </div>
           </div>
+          <div className="mt-4 flex gap-3 flex-wrap">
+            <button
+              onClick={recommendSDLC}
+              disabled={sdlcLoading}
+              className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
+            >
+              {sdlcLoading ? "Generating..." : "Recommend SDLC"}
+            </button>
 
+            {sdlcRecommendation && (
+              <button
+                onClick={generateSDLCWorkflow}
+                disabled={sdlcLoading}
+                className="rounded-lg border px-4 py-2 hover:bg-white hover:text-black disabled:opacity-50"
+              >
+                Generate Workflow
+              </button>
+            )}
+          </div>
+                  {sdlcRecommendation && (
+          <div className="mt-6 rounded-lg border p-5">
+            <h3 className="mb-3 text-xl font-semibold">
+              Recommended SDLC: {sdlcRecommendation.recommended_model}
+            </h3>
+
+            <p className="mb-4 text-sm leading-6">
+              {sdlcRecommendation.reasoning}
+            </p>
+
+            <h4 className="mb-2 font-medium">
+              Key Factors
+            </h4>
+
+            <ul className="list-disc space-y-1 pl-5 text-sm">
+              {sdlcRecommendation.key_factors.map((factor, index) => (
+                <li key={index}>{factor}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+                {sdlcWorkflow && (
+          <div className="mt-6 rounded-lg border p-5">
+            <h3 className="mb-4 text-xl font-semibold">
+              {sdlcWorkflow.model} Workflow
+            </h3>
+
+            <div className="space-y-4">
+              {sdlcWorkflow.workflow.map((item) => (
+                <div
+                  key={item.step}
+                  className="border-l-2 border-black pl-4"
+                >
+                  <h4 className="font-semibold">
+                    {item.step}. {item.phase}
+                  </h4>
+
+                  <p className="mt-1 text-sm leading-6">
+                    {item.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
           <button
             onClick={generateSRS}
             disabled={documentationLoading || requirements.length === 0}

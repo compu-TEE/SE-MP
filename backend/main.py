@@ -104,6 +104,7 @@ class ProjectCharacteristics(BaseModel):
     risk_level: str
     complexity: str
     delivery_priority: str
+    requirements_clarity: str
 
 
 class SDLCRecommendation(BaseModel):
@@ -491,37 +492,89 @@ CONTENT:
     )
 
 SDLC_PROMPT = """
-You are an SDLC methodology selection agent for financial software projects.
+You are an expert Software Development Life Cycle (SDLC) methodology advisor.
 
-Based on the project characteristics provided, recommend the most suitable
-SDLC methodology.
+Based on the given project characteristics, recommend exactly ONE SDLC model.
 
-Possible methodologies:
-- Agile
-- DevSecOps
-- Spiral
-- V-Model
-- Waterfall
-- Hybrid
+You may ONLY recommend one of these 7 models:
 
-Consider:
+1. Waterfall
+2. V-Model
+3. Prototyping
+4. Iterative/Incremental
+5. RAD
+6. Spiral
+7. Agile
+
+Consider these factors carefully:
+
 - Project type
 - Regulatory criticality
 - Change frequency
 - Risk level
 - Complexity
 - Delivery priority
+- Requirements clarity
 
-Return ONLY valid JSON in this format:
+General guidance:
+
+Waterfall:
+Use when requirements are stable, clearly defined, change frequency is low,
+and a sequential development process is appropriate.
+
+V-Model:
+Use when requirements are stable but strong verification, validation,
+testing, quality assurance, and regulatory assurance are important.
+
+Prototyping:
+Use when requirements are unclear, user feedback is important,
+or stakeholders need an early working representation to clarify requirements.
+
+Iterative/Incremental:
+Use when the system can be developed and delivered in multiple increments,
+with requirements and functionality refined across iterations.
+
+RAD:
+Use when rapid development is important, requirements are reasonably understood,
+the project has relatively low risk, and quick delivery with frequent user feedback
+is desired.
+
+Spiral:
+Use when project risk and complexity are high, especially when continuous
+risk identification, analysis, prototyping, and mitigation are required.
+
+Agile:
+Use when requirements change frequently, continuous stakeholder feedback is
+important, and the project benefits from short iterative development cycles.
+
+Requirements clarity:
+- unclear: strongly consider Prototyping
+- partially clear: consider Iterative/Incremental or Prototyping
+- clear: consider Waterfall, V-Model, RAD, or Agile depending on other factors
+
+Do not recommend a model outside the seven listed above.
+
+Return the result in the following structure:
 
 {
-  "recommended_model": "string",
-  "reasoning": "string",
-  "key_factors": ["factor 1", "factor 2", "factor 3"]
+  "recommended_model": "one of the 7 models",
+  "reasoning": "clear explanation of why this model fits the project",
+  "key_factors": [
+    "factor 1",
+    "factor 2",
+    "factor 3"
+  ]
 }
 
-The recommendation must be specific to the provided project characteristics.
-Do not invent regulations or external facts.
+Project characteristics:
+
+Project type: {project_type}
+Regulatory criticality: {regulatory_criticality}
+Change frequency: {change_frequency}
+Risk level: {risk_level}
+Complexity: {complexity}
+Delivery priority: {delivery_priority}
+Requirements clarity: {requirements_clarity}
 """
 
 def sdlc_agent(characteristics: ProjectCharacteristics):
