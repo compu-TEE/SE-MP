@@ -4,6 +4,7 @@ import { useState } from "react";
 
 type Requirement = {
   id: string;
+  db_id?: number;
   statement: string;
   category: string;
   source_stakeholder?: string | null;
@@ -38,6 +39,7 @@ type ComplianceFinding = {
   finding: string;
   evidence: string[];
   recommendation: string;
+  approval_status?: string;
 };
 
 type ComplianceAnalysis = {
@@ -46,11 +48,13 @@ type ComplianceAnalysis = {
 };
 
 type RiskFinding = {
+  id?: number;
   requirement_id: string;
   risk_type: string;
   severity: string;
   description: string;
   mitigation: string;
+  approval_status?: string;
 };
 
 type RiskAnalysis = {
@@ -69,9 +73,11 @@ type ProjectCharacteristics = {
 };
 
 type SDLCRecommendation = {
+  id?: number;
   recommended_model: string;
   reasoning: string;
   key_factors: string[];
+  approval_status?: string;
 };
 
 type SDLCWorkflowStep = {
@@ -164,7 +170,27 @@ export default function Home() {
 
       setMessages([...updatedMessages, modelMessage]);
 
-      setRequirements(data.requirements || []);
+      const projectRes = await fetch(
+        "http://127.0.0.1:8000/project"
+      );
+
+      const projectData = await projectRes.json();
+
+      const requirementsWithDbIds = (data.requirements || []).map(
+        (req: Requirement) => {
+          const dbRequirement = projectData.requirements?.find(
+            (dbReq: any) =>
+              dbReq.statement === req.statement
+          );
+
+          return {
+            ...req,
+            db_id: dbRequirement?.id,
+          };
+        }
+      );
+
+      setRequirements(requirementsWithDbIds);
       setMissingInformation(data.missing_information || []);
       setClarificationQuestions(data.clarification_questions || []);
     } catch (error) {
@@ -180,17 +206,64 @@ export default function Home() {
     }
   };
 
-  const updateRequirementStatus = (
+const updateRequirementStatus = async (
   id: string,
   status: string
 ) => {
-  setRequirements((current) =>
-    current.map((req) =>
-      req.id === id
-        ? { ...req, approval_status: status }
-        : req
-    )
+  const requirement = requirements.find(
+    (req) => req.id === id
   );
+
+  console.log("1. Requirement clicked:", requirement);
+  console.log("2. DB ID:", requirement?.db_id);
+  console.log("3. Status:", status);
+
+  if (!requirement?.db_id) {
+    alert("Database requirement ID not found.");
+    return;
+  }
+
+  try {
+    const url = `http://127.0.0.1:8000/requirements/${requirement.db_id}/approval`;
+
+    console.log("4. Sending PATCH:", url);
+
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        status: status,
+      }),
+    });
+
+    console.log("5. Response status:", response.status);
+
+    const updated = await response.json();
+
+    console.log("6. Backend response:", updated);
+
+    if (!response.ok) {
+      throw new Error(updated.detail || "Approval update failed");
+    }
+
+    setRequirements((current) =>
+      current.map((req) =>
+        req.id === id
+          ? {
+              ...req,
+              approval_status: updated.approval_status,
+            }
+          : req
+      )
+    );
+
+    console.log("7. Frontend state updated");
+  } catch (error) {
+    console.error("Approval update failed:", error);
+    alert("Failed to update requirement approval.");
+  }
 };
 
 const startEditing = (req: Requirement) => {
@@ -355,6 +428,128 @@ const getComplianceStatus = (requirementId: string) => {
   return complianceAnalysis?.findings.find(
     (finding) => finding.requirement_id === requirementId
   )?.status;
+};
+
+const updateComplianceApproval = async (
+  findingId: number,
+  status: "Draft" | "Approved" | "Rejected"
+) => {
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/compliance/${findingId}/approval`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      }
+    );
+
+    const updated = await response.json();
+
+    if (!response.ok) {
+      throw new Error(updated.detail || "Approval update failed");
+    }
+
+    setComplianceAnalysis((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        findings: current.findings.map((finding) =>
+          finding.requirement_id === updated.requirement_code
+            ? {
+                ...finding,
+                approval_status: updated.approval_status,
+              }
+            : finding
+        ),
+      };
+    });
+  } catch (error) {
+    console.error("Compliance approval update failed:", error);
+    alert("Failed to update compliance approval.");
+  }
+};
+
+const updateRiskApproval = async (
+  findingId: number,
+  status: "Draft" | "Approved" | "Rejected"
+) => {
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/risk/${findingId}/approval`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      }
+    );
+
+    const updated = await response.json();
+
+    if (!response.ok) {
+      throw new Error(updated.detail || "Approval update failed");
+    }
+
+    setRiskAnalysis((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        findings: current.findings.map((finding) =>
+          finding.requirement_id === updated.requirement_code
+            ? {
+                ...finding,
+                approval_status: updated.approval_status,
+              }
+            : finding
+        ),
+      };
+    });
+  } catch (error) {
+    console.error("Risk approval update failed:", error);
+    alert("Failed to update risk approval.");
+  }
+};
+
+const updateSDLCApproval = async (
+  recommendationId: number,
+  status: "Draft" | "Approved" | "Rejected"
+) => {
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/sdlc/${recommendationId}/approval`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      }
+    );
+
+    const updated = await response.json();
+
+    if (!response.ok) {
+      throw new Error(updated.detail || "Approval update failed");
+    }
+
+    setSdlcRecommendation((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        approval_status: updated.approval_status,
+      };
+    });
+  } catch (error) {
+    console.error("SDLC approval update failed:", error);
+    alert("Failed to update SDLC approval.");
+  }
 };
 
 const analyzeRisk = async () => {
@@ -823,6 +1018,36 @@ const generateSDLCWorkflow = async () => {
                 <li key={index}>{factor}</li>
               ))}
             </ul>
+            <div className="mt-4 flex items-center justify-between border-t pt-3">
+              <span className="text-sm font-medium">
+                Approval:{" "}
+                <span className="font-normal">
+                  {sdlcRecommendation.approval_status || "Draft"}
+                </span>
+              </span>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() =>
+                    sdlcRecommendation.id &&
+                    updateSDLCApproval(sdlcRecommendation.id, "Approved")
+                  }
+                  className="rounded bg-green-600 px-3 py-1 text-xs text-white"
+                >
+                  Approve
+                </button>
+
+                <button
+                  onClick={() =>
+                    sdlcRecommendation.id &&
+                    updateSDLCApproval(sdlcRecommendation.id, "Rejected")
+                  }
+                  className="rounded bg-red-600 px-3 py-1 text-xs text-white"
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
           </div>
         )}
                 {sdlcWorkflow && (
@@ -931,7 +1156,7 @@ const generateSDLCWorkflow = async () => {
               <div className="space-y-4">
                 {requirements.map((req) => (
                   <div
-                    key={req.id}
+                    key={req.db_id ?? req.id}
                     className="rounded-lg border p-5"
                   >
                     <div className="mb-4">
@@ -994,21 +1219,11 @@ const generateSDLCWorkflow = async () => {
                           Edit
                         </button>
 
-                        <button
-                          onClick={() =>
-                            updateRequirementStatus(req.id, "approved")
-                          }
-                          className="rounded border px-3 py-1 text-sm"
-                        >
+                        <button onClick={() => updateRequirementStatus(req.id, "Approved")}>
                           Approve
                         </button>
 
-                        <button
-                          onClick={() =>
-                            updateRequirementStatus(req.id, "rejected")
-                          }
-                          className="rounded border px-3 py-1 text-sm"
-                        >
+                        <button onClick={() => updateRequirementStatus(req.id, "Rejected")}>
                           Reject
                         </button>
 
@@ -1101,6 +1316,50 @@ const generateSDLCWorkflow = async () => {
                         </span>
                       </div>
 
+                      <div className="mb-3 flex items-center gap-2">
+                        <span className="rounded-full border px-2 py-1 text-xs">
+                          Approval: {finding.approval_status || "Draft"}
+                        </span>
+                      </div>
+
+                      <div className="mb-4 flex flex-wrap gap-2">
+                        <button
+                          onClick={() => {
+                            const id = Number(
+                              (finding as any).id
+                            );
+
+                            if (!id) {
+                              alert("Compliance finding ID not found.");
+                              return;
+                            }
+
+                            updateComplianceApproval(id, "Approved");
+                          }}
+                          className="rounded border px-3 py-1 text-sm"
+                        >
+                          Approve
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            const id = Number(
+                              (finding as any).id
+                            );
+
+                            if (!id) {
+                              alert("Compliance finding ID not found.");
+                              return;
+                            }
+
+                            updateComplianceApproval(id, "Rejected");
+                          }}
+                          className="rounded border px-3 py-1 text-sm"
+                        >
+                          Reject
+                        </button>
+                      </div>
+
                       <p className="mb-3 text-sm">
                         {finding.finding}
                       </p>
@@ -1142,6 +1401,7 @@ const generateSDLCWorkflow = async () => {
 
               <div className="space-y-4">
                 {riskAnalysis.findings.map((risk, index) => (
+                  
                   <div
                     key={index}
                     className="rounded-lg border p-4"
@@ -1170,6 +1430,32 @@ const generateSDLCWorkflow = async () => {
                       </span>{" "}
                       {risk.mitigation}
                     </p>
+
+                    {/* Approval */}
+                    <div className="mt-4 flex items-center justify-between border-t pt-3">
+                      <span className="text-sm font-medium">
+                        Approval:{" "}
+                        <span className="font-normal">
+                          {risk.approval_status || "Draft"}
+                        </span>
+                      </span>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => risk.id && updateRiskApproval(risk.id, "Approved")}
+                          className="rounded bg-green-600 px-3 py-1 text-xs text-white"
+                        >
+                          Approve
+                        </button>
+
+                        <button
+                          onClick={() => risk.id && updateRiskApproval(risk.id, "Rejected")}
+                          className="rounded bg-red-600 px-3 py-1 text-xs text-white"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

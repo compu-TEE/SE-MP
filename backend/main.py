@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from pydantic import BaseModel
 from rag import rag_answer, retrieve_documents
+from fastapi import FastAPI, HTTPException
 from models import (
     Project,
     Requirement as DBRequirement,
@@ -13,7 +14,8 @@ from models import (
     ComplianceFinding as DBComplianceFinding,
     RiskFinding as DBRiskFinding,
     SDLCRecommendation as DBSDLCRecommendation,
-    DocumentationArtifact as DBDocumentationArtifact
+    DocumentationArtifact as DBDocumentationArtifact,
+    AuditLog
 )
 from database import SessionLocal
 
@@ -75,11 +77,13 @@ class QualityAnalysis(BaseModel):
     summary: str
 
 class ComplianceFinding(BaseModel):
+    id: int | None = None
     requirement_id: str
     status: str
     finding: str
     evidence: list[str] = []
     recommendation: str
+    approval_status: str = "Draft"
 
 class SingleComplianceAnalysis(BaseModel):
     status: str
@@ -92,11 +96,13 @@ class ComplianceAnalysis(BaseModel):
     summary: str
 
 class RiskFinding(BaseModel):
+    id: int | None = None
     requirement_id: str
     risk_type: str
     severity: str
     description: str
     mitigation: str
+    approval_status: str = "Draft"
 
 class SingleRiskAnalysis(BaseModel):
     risk_type: str
@@ -118,9 +124,11 @@ class ProjectCharacteristics(BaseModel):
 
 
 class SDLCRecommendation(BaseModel):
+    id: int | None = None
     recommended_model: str
     reasoning: str
     key_factors: list[str] = []
+    approval_status: str = "Draft"
 
 class SDLCWorkflowStep(BaseModel):
     step: int
@@ -155,6 +163,9 @@ class ChatRequest(BaseModel):
 
 class RAGRequest(BaseModel):
     query: str
+
+class RequirementApproval(BaseModel):
+    status: str
 
 SYSTEM_PROMPT = """
 You are a Requirements Engineering AI assistant for financial software projects.
@@ -778,6 +789,8 @@ Rules:
             )
 
             db.add(requirement)
+            db.flush()
+            req["db_id"] = requirement.id
 
         db.commit()
 
@@ -869,6 +882,10 @@ def analyze_compliance(request: RequirementState):
             )
 
             db.add(compliance_record)
+            db.flush()
+
+            finding.id = compliance_record.id
+            finding.approval_status = compliance_record.approval_status
 
         db.commit()
 
@@ -910,6 +927,10 @@ def analyze_risk(request: RequirementState):
             )
 
             db.add(risk_record)
+            db.flush()
+
+            finding.id = risk_record.id
+            finding.approval_status = risk_record.approval_status
 
         db.commit()
 
@@ -921,6 +942,62 @@ def analyze_risk(request: RequirementState):
         db.close()
 
     return analysis.model_dump()
+
+class RiskApproval(BaseModel):
+    status: str
+
+
+@app.patch("/risk/{finding_id}/approval")
+def update_risk_approval(
+    finding_id: int,
+    approval: RiskApproval
+):
+    if approval.status not in ["Draft", "Approved", "Rejected"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid approval status"
+        )
+
+    db = SessionLocal()
+
+    try:
+        finding = (
+            db.query(DBRiskFinding)
+            .filter(DBRiskFinding.id == finding_id)
+            .first()
+        )
+
+        if not finding:
+            raise HTTPException(
+                status_code=404,
+                detail="Risk finding not found"
+            )
+
+        old_status = finding.approval_status
+
+        finding.approval_status = approval.status
+
+        audit = AuditLog(
+            entity_type="Risk",
+            entity_id=finding.id,
+            action="Approval Status Changed",
+            old_status=old_status,
+            new_status=approval.status
+        )
+
+        db.add(audit)
+        db.commit()
+        db.refresh(finding)
+
+        return {
+            "message": "Risk approval status updated",
+            "finding_id": finding.id,
+            "requirement_code": finding.requirement_code,
+            "approval_status": finding.approval_status
+        }
+
+    finally:
+        db.close()
 
 @app.post("/sdlc", response_model=SDLCRecommendation)
 def recommend_sdlc(characteristics: ProjectCharacteristics):
@@ -956,6 +1033,16 @@ def recommend_sdlc(characteristics: ProjectCharacteristics):
         )
 
         db.add(sdlc_record)
+        db.flush()
+
+        recommendation = SDLCRecommendation(
+            id=sdlc_record.id,
+            recommended_model=recommendation.recommended_model,
+            reasoning=recommendation.reasoning,
+            key_factors=recommendation.key_factors,
+            approval_status=sdlc_record.approval_status,
+        )
+
         db.commit()
 
     except Exception:
@@ -1157,6 +1244,175 @@ def get_project():
                 }
                 for artifact in documentation_artifacts
             ],
+        }
+
+    finally:
+        db.close()
+
+@app.patch("/requirements/{requirement_id}/approval")
+def update_requirement_approval(
+    requirement_id: int,
+    approval: RequirementApproval
+):
+        if approval.status not in ["Draft", "Approved", "Rejected"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Status must be Draft, Approved, or Rejected"
+            )
+
+        db = SessionLocal()
+
+        try:
+            requirement = db.query(DBRequirement).filter(
+                DBRequirement.id == requirement_id
+            ).first()
+
+            if not requirement:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Requirement not found"
+                )
+
+            old_status = requirement.approval_status
+
+            requirement.approval_status = approval.status
+
+            audit = AuditLog(
+                entity_type="Requirement",
+                entity_id=requirement.id,
+                action="Approval Status Changed",
+                old_status=old_status,
+                new_status=approval.status
+            )
+
+            db.add(audit)
+            db.commit()
+            db.refresh(requirement)
+
+            return {
+                "message": "Requirement approval status updated",
+                "requirement_id": requirement.id,
+                "requirement_code": requirement.requirement_code,
+                "approval_status": requirement.approval_status
+            }
+
+        except HTTPException:
+            raise
+
+        except Exception:
+            db.rollback()
+            raise
+
+        finally:
+            db.close()
+
+class ComplianceApproval(BaseModel):
+    status: str
+
+
+@app.patch("/compliance/{finding_id}/approval")
+def update_compliance_approval(
+    finding_id: int,
+    approval: ComplianceApproval
+):
+    if approval.status not in ["Draft", "Approved", "Rejected"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid approval status"
+        )
+
+    db = SessionLocal()
+
+    try:
+        finding = (
+            db.query(DBComplianceFinding)
+            .filter(DBComplianceFinding.id == finding_id)
+            .first()
+        )
+
+        if not finding:
+            raise HTTPException(
+                status_code=404,
+                detail="Compliance finding not found"
+            )
+
+        old_status = finding.approval_status
+
+        finding.approval_status = approval.status
+
+        audit = AuditLog(
+            entity_type="Compliance",
+            entity_id=finding.id,
+            action="Approval Status Changed",
+            old_status=old_status,
+            new_status=approval.status
+        )
+
+        db.add(audit)
+        db.commit()
+        db.refresh(finding)
+
+        return {
+            "message": "Compliance approval status updated",
+            "finding_id": finding.id,
+            "requirement_code": finding.requirement_code,
+            "approval_status": finding.approval_status
+        }
+
+    finally:
+        db.close()
+
+class SDLCApproval(BaseModel):
+    status: str
+
+
+@app.patch("/sdlc/{recommendation_id}/approval")
+def update_sdlc_approval(
+    recommendation_id: int,
+    approval: SDLCApproval
+):
+    if approval.status not in ["Draft", "Approved", "Rejected"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid approval status"
+        )
+
+    db = SessionLocal()
+
+    try:
+        recommendation = (
+            db.query(DBSDLCRecommendation)
+            .filter(DBSDLCRecommendation.id == recommendation_id)
+            .first()
+        )
+
+        if not recommendation:
+            raise HTTPException(
+                status_code=404,
+                detail="SDLC recommendation not found"
+            )
+
+        old_status = recommendation.approval_status
+
+        recommendation.approval_status = approval.status
+
+        audit = AuditLog(
+            entity_type="SDLC",
+            entity_id=recommendation.id,
+            action="Approval Status Changed",
+            old_status=old_status,
+            new_status=approval.status
+        )
+
+        db.add(audit)
+        db.commit()
+        db.refresh(recommendation)
+
+        return {
+            "message": "SDLC approval status updated",
+            "recommendation_id": recommendation.id,
+            "recommended_model": recommendation.recommended_model,
+            "approval_status": recommendation.approval_status
         }
 
     finally:

@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, Float, ForeignKey, DateTim
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
+from datetime import datetime
 
 Base = declarative_base()
 
@@ -84,6 +85,11 @@ class ComplianceFinding(Base):
     evidence = Column(ARRAY(Text))
     recommendation = Column(Text)
 
+    approval_status = Column(
+        String(50),
+        default="Draft"
+    )
+
     created_at = Column(
         DateTime,
         server_default=func.now()
@@ -106,6 +112,7 @@ class RiskFinding(Base):
     severity = Column(String(50))
     description = Column(Text)
     mitigation = Column(Text)
+    approval_status = Column(String(20), default="Draft")
 
     created_at = Column(
         DateTime,
@@ -135,8 +142,27 @@ class SDLCRecommendation(Base):
     recommended_model = Column(String(100))
     reasoning = Column(Text)
     key_factors = Column(ARRAY(Text))
+    approval_status = Column(String(20), default="Draft")
 
     project = relationship("Project")
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True)
+
+    entity_type = Column(String(50), nullable=False)
+    entity_id = Column(Integer, nullable=False)
+
+    action = Column(String(50), nullable=False)
+
+    old_status = Column(String(20))
+    new_status = Column(String(20))
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
 
 class DocumentationArtifact(Base):
     __tablename__ = "documentation_artifacts"
