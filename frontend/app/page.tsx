@@ -110,6 +110,7 @@ export default function Home() {
   const [useCasesContent, setUseCasesContent] = useState("");
   const [acceptanceCriteriaContent, setAcceptanceCriteriaContent] = useState("");
   const [traceabilityContent, setTraceabilityContent] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [projectCharacteristics, setProjectCharacteristics] =
     useState<ProjectCharacteristics>({
       project_type: "",
@@ -136,9 +137,11 @@ export default function Home() {
   const [editText, setEditText] = useState("");
   const [srsContent, setSrsContent] = useState("");
   const [documentationLoading, setDocumentationLoading] = useState(false);
+  const [activeOperation, setActiveOperation] = useState<string | null>(null);
   const sendMessage = async () => {
+    
     if (!message.trim() || loading) return;
-
+    setActiveOperation("chat");
     const userMessage: Message = {
       role: "user",
       content: message,
@@ -203,6 +206,7 @@ export default function Home() {
       ]);
     } finally {
       setLoading(false);
+      setActiveOperation(null);
     }
   };
 
@@ -341,8 +345,9 @@ const regenerateRequirement = async (id: string) => {
 };
 
 const analyzeRequirements = async () => {
+  
   if (requirements.length === 0 || loading) return;
-
+  setActiveOperation("quality");
   setLoading(true);
 
   try {
@@ -363,14 +368,17 @@ const analyzeRequirements = async () => {
     setQualityAnalysis(data);
   } catch (error) {
     console.error("Quality analysis failed:", error);
+    setErrorMessage("Failed to analyze requirements. Please try again.");
   } finally {
     setLoading(false);
+    setActiveOperation(null);
   }
 };
 
 const askKnowledgeBase = async () => {
+  
   if (!ragQuery.trim() || loading) return;
-
+  setActiveOperation("rag");
   setLoading(true);
 
   try {
@@ -393,12 +401,14 @@ const askKnowledgeBase = async () => {
     setRagAnswer("Failed to query the knowledge base.");
   } finally {
     setLoading(false);
+    setActiveOperation(null);
   }
 };
 
 const analyzeCompliance = async () => {
+  
   if (requirements.length === 0 || loading) return;
-
+  setActiveOperation("compliance");
   setLoading(true);
 
   try {
@@ -419,8 +429,10 @@ const analyzeCompliance = async () => {
     setComplianceAnalysis(data);
   } catch (error) {
     console.error("Compliance analysis failed:", error);
+    setErrorMessage("Failed to analyze compliance. Please try again.");
   } finally {
     setLoading(false);
+    setActiveOperation(null);
   }
 };
 
@@ -553,8 +565,9 @@ const updateSDLCApproval = async (
 };
 
 const analyzeRisk = async () => {
-  if (requirements.length === 0 || loading) return;
 
+  if (requirements.length === 0 || loading) return;
+  setActiveOperation("risk");
   setLoading(true);
 
   try {
@@ -575,8 +588,10 @@ const analyzeRisk = async () => {
     setRiskAnalysis(data);
   } catch (error) {
     console.error("Risk analysis failed:", error);
+    setErrorMessage("Failed to analyze risk. Please try again.");
   } finally {
     setLoading(false);
+    setActiveOperation(null);
   }
 };
 
@@ -587,6 +602,7 @@ const getRiskSeverity = (requirementId: string) => {
 };
 
 const generateSRS = async () => {
+  setActiveOperation("documentation");
   if (requirements.length === 0) {
     alert("No requirements available.");
     return;
@@ -616,9 +632,10 @@ const generateSRS = async () => {
     setTraceabilityContent(data.traceability.content);
   } catch (error) {
     console.error(error);
-    alert("Failed to generate SRS.");
+    setErrorMessage("Failed to generate SRS. Please try again.");
   } finally {
     setDocumentationLoading(false);
+    setActiveOperation(null);
   }
 };
 
@@ -682,6 +699,47 @@ const generateSDLCWorkflow = async () => {
   }
 };
 
+  const approvedRequirements = requirements.filter(
+    (req) => req.approval_status === "Approved"
+  ).length;
+
+  const rejectedRequirements = requirements.filter(
+    (req) => req.approval_status === "Rejected"
+  ).length;
+
+  const complianceFindings = complianceAnalysis?.findings.length ?? 0;
+
+  const riskFindings = riskAnalysis?.findings.length ?? 0;
+
+  const complianceRelevant =
+    complianceAnalysis?.findings.filter(
+      (finding) => finding.status?.toLowerCase() === "relevant"
+    ).length ?? 0;
+
+  const complianceApproved =
+    complianceAnalysis?.findings.filter(
+      (finding) => finding.approval_status === "Approved"
+    ).length ?? 0;
+
+  const highRiskFindings =
+    riskAnalysis?.findings.filter(
+      (finding) => finding.severity?.toLowerCase() === "high"
+    ).length ?? 0;
+
+  const riskApproved =
+    riskAnalysis?.findings.filter(
+      (finding) => finding.approval_status === "Approved"
+    ).length ?? 0;
+
+  const qualityIssues = qualityAnalysis?.issues.length ?? 0;
+
+  const overallApproval =
+    requirements.length > 0 && approvedRequirements === requirements.length
+      ? "Approved"
+      : requirements.length > 0 && rejectedRequirements > 0
+        ? "Needs Review"
+        : "Draft";
+
   return (
     <main className="min-h-screen p-8">
       <div className="mx-auto max-w-6xl">
@@ -693,7 +751,157 @@ const generateSDLCWorkflow = async () => {
           AI assistant for software requirements engineering
         </p>
 
-        <div className="grid gap-8 lg:grid-cols-2">
+      {errorMessage && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          {errorMessage}
+        </div>
+      )}
+
+                {/* Project Overview */}
+        <div className="mb-8">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Project Overview</h2>
+              <p className="text-sm text-gray-500">
+                Current status of the requirements engineering process
+              </p>
+            </div>
+
+            <span
+              className={`rounded-full px-3 py-1 text-sm font-medium ${
+                overallApproval === "Approved"
+                  ? "bg-green-100 text-green-800"
+                  : overallApproval === "Needs Review"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-100 text-gray-800"
+              }`}
+            >
+              {overallApproval}
+            </span>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            
+            {/* Requirements */}
+            <div className="rounded-lg border p-5">
+              <p className="text-sm text-gray-500">Requirements</p>
+              <p className="mt-1 text-3xl font-bold">
+                {requirements.length}
+              </p>
+              <p className="mt-1 text-sm text-gray-500">
+                {approvedRequirements} approved
+              </p>
+            </div>
+
+            {/* Quality */}
+            <div className="rounded-lg border p-5">
+              <p className="text-sm text-gray-500">Quality Issues</p>
+              <p className="mt-1 text-3xl font-bold">
+                {qualityIssues}
+              </p>
+              <p className="mt-1 text-sm text-gray-500">
+                {qualityAnalysis
+                  ? `${qualityAnalysis.completeness_score}% completeness`
+                  : "Analysis not run"}
+              </p>
+            </div>
+
+            {/* Compliance */}
+            <div className="rounded-lg border p-5">
+              <p className="text-sm text-gray-500">Compliance Findings</p>
+
+              <p className="mt-1 text-3xl font-bold">
+                {complianceFindings}
+              </p>
+
+              <p className="mt-1 text-sm text-gray-500">
+                {complianceAnalysis
+                  ? `${complianceRelevant} relevant · ${complianceApproved} approved`
+                  : "Analysis not run"}
+              </p>
+            </div>
+
+            {/* Risk */}
+            <div className="rounded-lg border p-5">
+              <p className="text-sm text-gray-500">Risk Findings</p>
+
+              <p className="mt-1 text-3xl font-bold">
+                {riskFindings}
+              </p>
+
+              <p className="mt-1 text-sm text-gray-500">
+                {riskAnalysis
+                  ? `${highRiskFindings} high severity · ${riskApproved} approved`
+                  : "Analysis not run"}
+              </p>
+            </div>
+
+            {/* SDLC */}
+            <div className="rounded-lg border p-5">
+              <p className="text-sm text-gray-500">SDLC Recommendation</p>
+
+              <p className="mt-1 text-2xl font-bold">
+                {sdlcRecommendation?.recommended_model || "Not selected"}
+              </p>
+
+              {sdlcRecommendation ? (
+                <>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Approval:{" "}
+                    <span className="font-medium text-white">
+                      {sdlcRecommendation.approval_status || "Draft"}
+                    </span>
+                  </p>
+
+                  <p className="mt-1 text-sm text-gray-500">
+                    {sdlcRecommendation.key_factors.length} key factors identified
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-gray-500">
+                  Run SDLC recommendation
+                </p>
+              )}
+            </div>
+
+            {/* Documentation */}
+            <div className="rounded-lg border p-5">
+              <p className="text-sm text-gray-500">Documentation</p>
+
+              <p className="mt-1 text-2xl font-bold">
+                {srsContent ? "Generated" : "Pending"}
+              </p>
+
+              <p className="mt-1 text-sm text-gray-500">
+                {srsContent
+                  ? "Project documentation is available"
+                  : "Generate SRS to continue"}
+              </p>
+
+              {srsContent && (
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {[
+                    "SRS",
+                    "User Stories",
+                    "Use Cases",
+                    "Acceptance Criteria",
+                    "Traceability",
+                  ].map((artifact) => (
+                    <span
+                      key={artifact}
+                      className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-800"
+                    >
+                      {artifact}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start">
           {/* Chat */}
           <div>
             <h2 className="mb-4 text-xl font-semibold">Conversation</h2>
@@ -735,13 +943,13 @@ const generateSDLCWorkflow = async () => {
 
             <button
               onClick={sendMessage}
-              disabled={loading}
+              disabled={activeOperation === "chat"}
               className="rounded-lg bg-black px-6 py-3 text-white disabled:opacity-50"
             >
-              {loading ? "Thinking..." : "Send"}
+              {activeOperation === "chat" ? "Thinking..." : "Send"}
             </button>
           </div>
-
+          <div>
           <div className="mb-8 rounded-lg border p-5">
             <h2 className="mb-4 text-xl font-semibold">
               Project Characteristics
@@ -979,7 +1187,7 @@ const generateSDLCWorkflow = async () => {
               </div>
 
             </div>
-          </div>
+
           <div className="mt-4 flex gap-3 flex-wrap">
             <button
               onClick={recommendSDLC}
@@ -999,6 +1207,21 @@ const generateSDLCWorkflow = async () => {
               </button>
             )}
           </div>
+                  </div>
+
+        <button
+          onClick={generateSRS}
+          disabled={activeOperation === "documentation"}
+          className="mt-4 w-full rounded-lg border px-4 py-3 hover:bg-white hover:text-black disabled:opacity-50"
+        >
+          {activeOperation === "documentation"
+            ? "Generating SRS..."
+            : "Generate SRS"}
+        </button>
+
+      </div>
+
+    </div>
                   {sdlcRecommendation && (
           <div className="mt-6 rounded-lg border p-5">
             <h3 className="mb-3 text-xl font-semibold">
@@ -1074,13 +1297,6 @@ const generateSDLCWorkflow = async () => {
             </div>
           </div>
         )}
-          <button
-            onClick={generateSRS}
-            disabled={documentationLoading || requirements.length === 0}
-            className="rounded-lg border px-4 py-2 hover:bg-white hover:text-black disabled:opacity-50"
-          >
-            {documentationLoading ? "Generating SRS..." : "Generate SRS"}
-          </button>
 
           {srsContent && (
             <div className="mt-6 rounded-lg border p-5">
@@ -1165,7 +1381,15 @@ const generateSDLCWorkflow = async () => {
                           {req.id}
                         </span>
 
-                        <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-black">
+                        <span
+                          className={`rounded-full px-3 py-1 text-sm font-medium ${
+                            req.approval_status === "Approved"
+                              ? "bg-green-100 text-green-800"
+                              : req.approval_status === "Rejected"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
                           {req.approval_status}
                         </span>
                         {getRiskSeverity(req.id) && (
@@ -1219,11 +1443,17 @@ const generateSDLCWorkflow = async () => {
                           Edit
                         </button>
 
-                        <button onClick={() => updateRequirementStatus(req.id, "Approved")}>
+                        <button
+                          onClick={() => updateRequirementStatus(req.id, "Approved")}
+                          className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700"
+                        >
                           Approve
                         </button>
 
-                        <button onClick={() => updateRequirementStatus(req.id, "Rejected")}>
+                        <button
+                          onClick={() => updateRequirementStatus(req.id, "Rejected")}
+                          className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700"
+                        >
                           Reject
                         </button>
 
@@ -1266,28 +1496,34 @@ const generateSDLCWorkflow = async () => {
             {requirements.length > 0 && (
               <button
                 onClick={analyzeRequirements}
-                disabled={loading}
+                disabled={activeOperation === "quality"}
                 className="mt-4 rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
               >
-                {loading ? "Analyzing..." : "Analyze Requirements"}
+                {activeOperation === "quality"
+                  ? "Analyzing..."
+                  : "Analyze Requirements"}
               </button>
             )}
             {requirements.length > 0 && (
               <button
                 onClick={analyzeCompliance}
-                disabled={loading}
+                disabled={activeOperation === "compliance"}
                 className="mt-2 rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
               >
-                {loading ? "Checking..." : "Analyze Compliance"}
+                {activeOperation === "compliance"
+                  ? "Checking..."
+                  : "Analyze Compliance"}
               </button>
             )}
             {requirements.length > 0 && (
               <button
                 onClick={analyzeRisk}
-                disabled={loading}
+                disabled={activeOperation === "risk"}
                 className="mt-2 rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
               >
-                {loading ? "Analyzing..." : "Analyze Risk"}
+                {activeOperation === "risk"
+                  ? "Analyzing..."
+                  : "Analyze Risk"}
               </button>
             )}
             {complianceAnalysis && (
@@ -1622,7 +1858,6 @@ const generateSDLCWorkflow = async () => {
             )}
           </div>
         </div>
-      </div>
     </main>
   );
 }
