@@ -21,6 +21,23 @@ class Project(Base):
         cascade="all, delete"
     )
 
+    messages = relationship(
+        "ConversationMessage",
+        back_populates="project",
+        cascade="all, delete"
+    )
+
+class ConversationMessage(Base):
+    __tablename__ = "conversation_messages"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    role = Column(String(20), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    project = relationship("Project", back_populates="messages")
+
 
 class Requirement(Base):
     __tablename__ = "requirements"

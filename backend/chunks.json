@@ -1,17 +1,317 @@
 [
   {
-    "source": "regulations/sample_rbi_policy.txt",
+    "source": "RBI - Fraud Risk Management Directions, 2024",
+    "jurisdiction": "India",
+    "effective_date": "2024-07-15",
+    "version": "2024",
+    "applicability": "Commercial Banks including RRBs and All India Financial Institutions",
     "chunk_id": 0,
-    "content": "Sample Financial Regulation Reference Document: Digital Banking Transaction Controls Source: Sample regulatory reference for project demonstration 1. Customer Authentication Financial transactions shall require customer authentication before execution. 2. Transaction Authorization The system shall verify that the authenticated customer is authorized to perform the requested transaction. 3. Transaction Limits Financial institutions may define transaction limits based on account type, transaction type, customer profile, and risk level. 4. Audit Logging Financial transaction activities should be recorded in an audit trail containing sufficient information to support investigation and compliance review. 5. Data Protection Sensitive customer and transaction information shall be protected against unauthorized access and disclosure. 6. Fraud Monitoring Systems handling financial transactions should support monitoring mechanisms for detecting potentially suspicious or fraudulent activity. 7. Record Retention Relevant transaction and audit records should be retained according to applicable organizational and regulatory retention requirements. IMPORTANT: This document is a fictional/sample reference created for the academic project. It must not be treated as an actual RBI regulation."
+    "content": "SOURCE: Reserve Bank of India\nDOCUMENT: Master Directions on Fraud Risk Management in Commercial Banks (including Regional Rural Banks) and All India Financial Institutions\nREFERENCE: RBI/DOS/2024-25/118\nDATE: July 15, 2024\nJURISDICTION: India\nAPPLICABILITY: Commercial Banks including RRBs, and All India Financial Institutions"
   },
   {
-    "source": "security/sample_security_policy.txt",
-    "chunk_id": 0,
-    "content": "Sample Financial Security Policy 1. Authentication Users must authenticate before accessing financial operations. 2. Authorization Access to financial operations must be restricted according to user roles and permissions. 3. Sensitive Data Sensitive financial information must not be exposed to unauthorized users. 4. Audit Logs Security-relevant actions must be recorded for auditing and investigation. 5. Access Control Administrative operations must be restricted to authorized personnel. 6. Incident Handling Security incidents should be recorded and investigated according to organizational procedures. IMPORTANT: This document is a fictional/sample security policy created for the academic project."
+    "source": "RBI - Fraud Risk Management Directions, 2024",
+    "jurisdiction": "India",
+    "effective_date": "2024-07-15",
+    "version": "2024",
+    "applicability": "Commercial Banks including RRBs and All India Financial Institutions",
+    "chunk_id": 1,
+    "content": "These Directions provide a framework to banks for prevention, early detection and timely reporting of incidents of fraud to Law Enforcement Agencies, the Reserve Bank of India and NABARD, along with related fraud risk management requirements."
   },
   {
-    "source": "policies/sample_bank_policy.txt",
+    "source": "RBI - Fraud Risk Management Directions, 2024",
+    "jurisdiction": "India",
+    "effective_date": "2024-07-15",
+    "version": "2024",
+    "applicability": "Commercial Banks including RRBs and All India Financial Institutions",
+    "chunk_id": 2,
+    "content": "Banks shall have a Board-approved Fraud Risk Management Policy defining the roles and responsibilities of the Board, Board Committees and Senior Management."
+  },
+  {
+    "source": "RBI - Fraud Risk Management Directions, 2024",
+    "jurisdiction": "India",
+    "effective_date": "2024-07-15",
+    "version": "2024",
+    "applicability": "Commercial Banks including RRBs and All India Financial Institutions",
+    "chunk_id": 3,
+    "content": "Banks shall establish an appropriate organisational structure for fraud risk management within their overall risk management functions. A senior official of at least General Manager rank or equivalent shall be responsible for monitoring and reporting frauds."
+  },
+  {
+    "source": "RBI - Fraud Risk Management Directions, 2024",
+    "jurisdiction": "India",
+    "effective_date": "2024-07-15",
+    "version": "2024",
+    "applicability": "Commercial Banks including RRBs and All India Financial Institutions",
+    "chunk_id": 4,
+    "content": "Banks shall maintain a framework for Early Warning Signals (EWS) and Red Flagging of Accounts (RFA) under the Board-approved Fraud Risk Management Policy."
+  },
+  {
+    "source": "RBI - Fraud Risk Management Directions, 2024",
+    "jurisdiction": "India",
+    "effective_date": "2024-07-15",
+    "version": "2024",
+    "applicability": "Commercial Banks including RRBs and All India Financial Institutions",
+    "chunk_id": 5,
+    "content": "A Red Flagged Account is an account where one or more Early Warning Signal indicators create suspicion of fraudulent activity and trigger deeper investigation and preventive measures."
+  },
+  {
+    "source": "RBI - Fraud Risk Management Directions, 2024",
+    "jurisdiction": "India",
+    "effective_date": "2024-07-15",
+    "version": "2024",
+    "applicability": "Commercial Banks including RRBs and All India Financial Institutions",
+    "chunk_id": 6,
+    "content": "The Risk Management Committee of the Board shall oversee the effectiveness of the EWS and RFA framework, while Senior Management is responsible for implementation."
+  },
+  {
+    "source": "RBI - Fraud Risk Management Directions, 2024",
+    "jurisdiction": "India",
+    "effective_date": "2024-07-15",
+    "version": "2024",
+    "applicability": "Commercial Banks including RRBs and All India Financial Institutions",
+    "chunk_id": 7,
+    "content": "Regulated entities are required to maintain robust internal audit and control frameworks as part of fraud risk management."
+  },
+  {
+    "source": "RBI - Fraud Risk Management Directions, 2024",
+    "jurisdiction": "India",
+    "effective_date": "2024-07-15",
+    "version": "2024",
+    "applicability": "Commercial Banks including RRBs and All India Financial Institutions",
+    "chunk_id": 8,
+    "content": "Banks shall use appropriate data analytics and market intelligence capabilities to strengthen fraud risk management and support early detection and prevention of fraud."
+  },
+  {
+    "source": "RBI - Fraud Risk Management Directions, 2024",
+    "jurisdiction": "India",
+    "effective_date": "2024-07-15",
+    "version": "2024",
+    "applicability": "Commercial Banks including RRBs and All India Financial Institutions",
+    "chunk_id": 9,
+    "content": "The framework includes requirements relating to reporting incidents of fraud to Law Enforcement Agencies and the Reserve Bank of India, as well as maintaining relevant fraud reporting information."
+  },
+  {
+    "source": "RBI - Fraud Risk Management Directions, 2024",
+    "jurisdiction": "India",
+    "effective_date": "2024-07-15",
+    "version": "2024",
+    "applicability": "Commercial Banks including RRBs and All India Financial Institutions",
+    "chunk_id": 10,
+    "content": "Fraud classification and related decisions must follow a defined governance process. The Directions require principles of natural justice to be followed in a time-bound manner before persons or entities are classified as fraudulent."
+  },
+  {
+    "source": "RBI - Fraud Risk Management Directions, 2024",
+    "jurisdiction": "India",
+    "effective_date": "2024-07-15",
+    "version": "2024",
+    "applicability": "Commercial Banks including RRBs and All India Financial Institutions",
+    "chunk_id": 11,
+    "content": "This document is included in the project's knowledge base as an authoritative regulatory reference. Requirements generated by the system should not claim that this document itself proves compliance. The system should use retrieved evidence to support analysis and require human review for regulatory decisions."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
     "chunk_id": 0,
-    "content": "Sample Internal Banking Policy 1. Money Transfers Customers may initiate transfers between eligible accounts. 2. Transfer Approval Transactions exceeding configured limits may require additional verification or approval. 3. Failed Transactions Failed transactions must provide an appropriate failure status to the customer. 4. Transaction Records Completed and failed transactions should be recorded for operational and audit purposes. 5. Customer Support Customers should be able to obtain information about the status of their transactions. IMPORTANT: This document is a fictional internal policy created for the academic project."
+    "content": "SOURCE: Reserve Bank of India\nDOCUMENT: Customer Protection - Limiting Liability of Customers in Unauthorised Electronic Banking Transactions\nREFERENCE: DBR.No.Leg.BC.78/09.07.005/2017-18\nDATE: July 6, 2017\nJURISDICTION: India\nAPPLICABILITY: Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks"
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 1,
+    "content": "The directions establish a framework for limiting customer liability in unauthorised electronic banking transactions and require banks to strengthen systems and procedures for customer protection."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 2,
+    "content": "Banks shall put in place appropriate systems and procedures to ensure the safety and security of electronic banking transactions carried out by customers."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 3,
+    "content": "Banks shall maintain robust and dynamic fraud detection and prevention mechanisms."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 4,
+    "content": "Banks shall assess risks arising from unauthorised transactions, measure liabilities arising from such events, and implement appropriate measures to mitigate those risks."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 5,
+    "content": "Banks shall require customers to register for SMS alerts and, wherever available, email alerts for electronic banking transactions."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 6,
+    "content": "Banks providing electronic banking services shall provide customers with 24x7 access through multiple channels for reporting unauthorised transactions and loss or theft of payment instruments."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 7,
+    "content": "Banks shall provide mechanisms allowing customers to report unauthorised transactions through channels such as website, phone banking, SMS, email, IVR and dedicated helplines."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 8,
+    "content": "Banks shall provide a direct link for reporting unauthorised electronic transactions on their website."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 9,
+    "content": "The reporting system shall provide an immediate acknowledgement of the complaint, including a registered complaint number."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 10,
+    "content": "Banks shall record the date and time of delivery of transaction alerts and customer responses."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 11,
+    "content": "On receiving a report of an unauthorised transaction, banks shall take immediate steps to prevent further unauthorised transactions in the account."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 12,
+    "content": "Customer liability depends on the circumstances of the unauthorised transaction, including whether the incident resulted from bank negligence, customer negligence or a third-party breach."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 13,
+    "content": "Where the customer is negligent, such as by sharing payment credentials, the customer bears the loss until the transaction is reported to the bank. Loss occurring after reporting is borne by the bank."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 14,
+    "content": "For certain third-party breaches, customers may have zero liability when they notify the bank within the prescribed time."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 15,
+    "content": "For transactions qualifying for zero or limited liability, the bank shall provide shadow reversal of the amount involved within the prescribed period."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 16,
+    "content": "Banks shall establish procedures and timelines for resolving complaints and determining customer liability."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 17,
+    "content": "Banks shall formulate or revise a Board-approved customer relations policy covering customer rights and obligations for unauthorised transactions."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 18,
+    "content": "The policy should include customer awareness, procedures for reporting unauthorised transactions, complaint acknowledgement, grievance redressal, escalation procedures, resolution timelines and compensation."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 19,
+    "content": "The burden of proving customer liability in cases of unauthorised electronic banking transactions shall lie on the bank."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 20,
+    "content": "Banks shall maintain mechanisms for reporting unauthorised electronic banking transaction cases to the Board or an appropriate Board Committee."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 21,
+    "content": "The framework also requires monitoring of such transactions and review by internal auditors."
+  },
+  {
+    "source": "RBI - Customer Protection for Unauthorised Electronic Banking Transactions",
+    "jurisdiction": "India",
+    "effective_date": "2017-07-06",
+    "version": "2017",
+    "applicability": "Scheduled Commercial Banks including RRBs, Small Finance Banks and Payments Banks",
+    "chunk_id": 22,
+    "content": "This document is included in the project's knowledge base as an authoritative regulatory reference. Requirements generated by the system should not claim that this document alone proves regulatory compliance. Retrieved evidence should support analysis, while final regulatory interpretation and compliance decisions require human review."
   }
 ]

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Requirement = {
   id: string;
@@ -63,7 +63,6 @@ type RiskAnalysis = {
 };
 
 type ProjectCharacteristics = {
-  project_type: string;
   regulatory_criticality: string;
   change_frequency: string;
   risk_level: string;
@@ -113,7 +112,6 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState("");
   const [projectCharacteristics, setProjectCharacteristics] =
     useState<ProjectCharacteristics>({
-      project_type: "",
       regulatory_criticality: "",
       change_frequency: "",
       risk_level: "",
@@ -138,6 +136,220 @@ export default function Home() {
   const [srsContent, setSrsContent] = useState("");
   const [documentationLoading, setDocumentationLoading] = useState(false);
   const [activeOperation, setActiveOperation] = useState<string | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
+  const createNewProject = async () => {
+  const confirmed = window.confirm(
+    "Start a new project? Your current project will be kept in the database, but this screen will switch to a new empty project."
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/project/new",
+      {
+        method: "POST",
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to create new project");
+    }
+
+    // Clear frontend state
+    setMessages([]);
+    setRequirements([]);
+    setMissingInformation([]);
+    setClarificationQuestions([]);
+    setQualityAnalysis(null);
+    setComplianceAnalysis(null);
+    setRiskAnalysis(null);
+
+    setSrsContent("");
+    setUserStoriesContent("");
+    setUseCasesContent("");
+    setAcceptanceCriteriaContent("");
+    setTraceabilityContent("");
+
+    setProjectCharacteristics({
+      regulatory_criticality: "",
+      change_frequency: "",
+      risk_level: "",
+      complexity: "",
+      delivery_priority: "",
+      requirements_clarity: "",
+    });
+
+    setSdlcRecommendation(null);
+    setSdlcWorkflow(null);
+
+    setRagQuery("");
+    setRagAnswer("");
+    setRagSources([]);
+
+    setErrorMessage("");
+    setEditingId(null);
+    setEditText("");
+
+  } catch (error) {
+    console.error("Failed to create new project:", error);
+    setErrorMessage("Failed to create a new project. Please try again.");
+  }
+};
+
+const loadProjects = async () => {
+    try {
+        const response = await fetch("http://localhost:8000/projects");
+        const data = await response.json();
+        setProjects(data);
+    } catch (error) {
+        console.error("Failed to load projects:", error);
+    }
+};
+
+const loadProjectById = async (projectId: number) => {
+    try {
+        const response = await fetch(
+            `http://localhost:8000/projects/${projectId}`
+        );
+
+        const data = await response.json();
+
+        if (!data.project) return;
+
+        // Conversation
+        setMessages(data.messages || []);
+
+        // Requirements
+        const loadedRequirements = (data.requirements || []).map(
+            (req: any) => ({
+                id: req.requirement_code,
+                db_id: req.id,
+                statement: req.statement,
+                category: req.category,
+                source_stakeholder: req.source_stakeholder,
+                business_justification: req.business_justification,
+                priority: req.priority,
+                dependencies: req.dependencies || [],
+                assumptions: req.assumptions || [],
+                acceptance_criteria: req.acceptance_criteria || [],
+                applicable_regulations: req.applicable_regulations || [],
+                risk_level: req.risk_level,
+                confidence_score: req.confidence_score,
+                approval_status: req.approval_status,
+            })
+        );
+
+        setRequirements(loadedRequirements);
+
+        // Quality
+        if (data.quality_analysis?.length > 0) {
+            setQualityAnalysis(
+                data.quality_analysis[
+                    data.quality_analysis.length - 1
+                ]
+            );
+        } else {
+            setQualityAnalysis(null);
+        }
+
+        // Compliance
+        if (data.compliance_findings?.length > 0) {
+            setComplianceAnalysis({
+                findings: data.compliance_findings,
+                summary:
+                    "Compliance analysis was performed using the available knowledge-base evidence.",
+            });
+        } else {
+            setComplianceAnalysis(null);
+        }
+
+        // Risk
+        if (data.risk_findings?.length > 0) {
+            setRiskAnalysis({
+                findings: data.risk_findings,
+                summary:
+                    "Risk analysis was performed using the available requirements and knowledge-base evidence.",
+            });
+        } else {
+            setRiskAnalysis(null);
+        }
+
+        // SDLC
+        if (data.sdlc_recommendations?.length > 0) {
+            const latestSDLC =
+                data.sdlc_recommendations[
+                    data.sdlc_recommendations.length - 1
+                ];
+
+            setSdlcRecommendation({
+                id: latestSDLC.id,
+                recommended_model: latestSDLC.recommended_model,
+                reasoning: latestSDLC.reasoning,
+                key_factors: latestSDLC.key_factors || [],
+                approval_status:
+                    latestSDLC.approval_status || "Draft",
+            });
+
+            setProjectCharacteristics({
+                regulatory_criticality:
+                    latestSDLC.regulatory_criticality || "",
+                change_frequency:
+                    latestSDLC.change_frequency || "",
+                risk_level:
+                    latestSDLC.risk_level || "",
+                complexity:
+                    latestSDLC.complexity || "",
+                delivery_priority:
+                    latestSDLC.delivery_priority || "",
+                requirements_clarity:
+                    latestSDLC.requirements_clarity || "",
+            });
+        } else {
+            setSdlcRecommendation(null);
+
+            setProjectCharacteristics({
+                regulatory_criticality: "",
+                change_frequency: "",
+                risk_level: "",
+                complexity: "",
+                delivery_priority: "",
+                requirements_clarity: "",
+            });
+        }
+
+        // Documentation
+        if (data.documentation_artifacts?.length > 0) {
+            const artifacts = data.documentation_artifacts;
+
+            const findArtifact = (type: string) =>
+                artifacts.find(
+                    (artifact: any) =>
+                        artifact.artifact_type === type
+                )?.content || "";
+
+            setSrsContent(findArtifact("SRS"));
+            setUserStoriesContent(findArtifact("User Stories"));
+            setUseCasesContent(findArtifact("Use Cases"));
+            setAcceptanceCriteriaContent(
+                findArtifact("Acceptance Criteria")
+            );
+            setTraceabilityContent(
+                findArtifact("Traceability")
+            );
+        } else {
+            setSrsContent("");
+            setUserStoriesContent("");
+            setUseCasesContent("");
+            setAcceptanceCriteriaContent("");
+            setTraceabilityContent("");
+        }
+
+    } catch (error) {
+        console.error("Failed to load project:", error);
+    }
+};
+
   const sendMessage = async () => {
     
     if (!message.trim() || loading) return;
@@ -740,12 +952,165 @@ const generateSDLCWorkflow = async () => {
         ? "Needs Review"
         : "Draft";
 
+useEffect(() => {
+  const loadProject = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/project");
+
+      if (!res.ok) {
+        throw new Error("Failed to load project");
+      }
+
+      const data = await res.json();
+
+      // Requirements
+      const loadedRequirements = (data.requirements || []).map(
+        (req: any) => ({
+          id: req.requirement_code,
+          db_id: req.id,
+          statement: req.statement,
+          category: req.category,
+          source_stakeholder: req.source_stakeholder,
+          business_justification: req.business_justification,
+          priority: req.priority,
+          dependencies: req.dependencies || [],
+          assumptions: req.assumptions || [],
+          acceptance_criteria: req.acceptance_criteria || [],
+          applicable_regulations: req.applicable_regulations || [],
+          risk_level: req.risk_level,
+          confidence_score: req.confidence_score,
+          approval_status: req.approval_status,
+        })
+      );
+
+      setRequirements(loadedRequirements);
+      setMessages(data.messages || []);
+
+      // Quality analysis
+      if (data.quality_analysis?.length > 0) {
+        const latestQuality =
+          data.quality_analysis[data.quality_analysis.length - 1];
+
+        setQualityAnalysis(latestQuality);
+      }
+
+      // Compliance
+      if (data.compliance_findings?.length > 0) {
+        setComplianceAnalysis({
+          findings: data.compliance_findings,
+          summary: "Compliance analysis was performed using the available knowledge-base evidence.",
+        });
+      }
+
+      // Risk
+      if (data.risk_findings?.length > 0) {
+        setRiskAnalysis({
+          findings: data.risk_findings,
+          summary: "Risk analysis was performed using the available requirements and knowledge-base evidence.",
+        });
+      }
+
+      // SDLC
+      if (data.sdlc_recommendations?.length > 0) {
+        const latestSDLC =
+          data.sdlc_recommendations[
+            data.sdlc_recommendations.length - 1
+          ];
+
+        setSdlcRecommendation({
+          id: latestSDLC.id,
+          recommended_model: latestSDLC.recommended_model,
+          reasoning: latestSDLC.reasoning,
+          key_factors: latestSDLC.key_factors || [],
+          approval_status: latestSDLC.approval_status || "Draft",
+        });
+
+        setProjectCharacteristics({
+          regulatory_criticality:
+            latestSDLC.regulatory_criticality || "",
+          change_frequency:
+            latestSDLC.change_frequency || "",
+          risk_level:
+            latestSDLC.risk_level || "",
+          complexity:
+            latestSDLC.complexity || "",
+          delivery_priority:
+            latestSDLC.delivery_priority || "",
+          requirements_clarity:
+            latestSDLC.requirements_clarity || "",
+        });
+      }
+
+      // Documentation
+      if (data.documentation_artifacts?.length > 0) {
+        const artifacts = data.documentation_artifacts;
+
+        const findArtifact = (type: string) =>
+          artifacts.find(
+            (artifact: any) => artifact.artifact_type === type
+          )?.content || "";
+
+        setSrsContent(findArtifact("SRS"));
+        setUserStoriesContent(findArtifact("User Stories"));
+        setUseCasesContent(findArtifact("Use Cases"));
+        setAcceptanceCriteriaContent(
+          findArtifact("Acceptance Criteria")
+        );
+        setTraceabilityContent(findArtifact("Traceability"));
+      }
+    } catch (error) {
+      console.error("Failed to load saved project:", error);
+    }
+  };
+  loadProjects();
+  loadProject();
+}, []);
+
   return (
     <main className="min-h-screen p-8">
       <div className="mx-auto max-w-6xl">
-        <h1 className="mb-2 text-3xl font-bold">
-          Financial Requirements AI
-        </h1>
+        <div className="mb-2 flex items-center justify-between">
+          <h1 className="text-3xl font-bold">
+            Financial Requirements AI
+          </h1>
+
+          <button
+            onClick={createNewProject}
+            className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            + New Project
+          </button>
+        </div>
+
+        {projects.length > 0 && (
+    <div className="relative">
+        <select
+    className="rounded-lg border px-3 py-2 text-sm text-white"
+    value=""
+    onChange={(e) => {
+        const projectId = Number(e.target.value);
+
+        if (projectId) {
+            loadProjectById(projectId);
+        }
+    }}
+>
+    <option value="" className="text-white bg-gray-800">
+        Previous Projects
+    </option>
+
+    {projects.map((project) => (
+        <option
+            key={project.id}
+            value={project.id}
+            className="text-black bg-white"
+        >
+            {project.name}
+        </option>
+    ))}
+</select>
+    </div>
+)}
 
         <p className="mb-8 text-gray-600">
           AI assistant for software requirements engineering
@@ -957,46 +1322,6 @@ const generateSDLCWorkflow = async () => {
 
             <div className="grid gap-4 md:grid-cols-2">
 
-              {/* Project Type */}
-              <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Project Type
-                </label>
-
-                <select
-                  className="w-full rounded-lg border p-2 bg-black text-white"
-                  value={projectCharacteristics.project_type}
-                  onChange={(e) =>
-                    setProjectCharacteristics({
-                      ...projectCharacteristics,
-                      project_type: e.target.value,
-                    })
-                  }
-                >
-                  <option value="" className="bg-white text-black">
-                    Select
-                  </option>
-                  <option value="digital banking" className="bg-white text-black">
-                    Digital Banking
-                  </option>
-                  <option value="loan processing" className="bg-white text-black">
-                    Loan Processing
-                  </option>
-                  <option value="payments" className="bg-white text-black">
-                    Payments
-                  </option>
-                  <option value="fraud detection" className="bg-white text-black">
-                    Fraud Detection
-                  </option>
-                  <option value="insurance" className="bg-white text-black">
-                    Insurance
-                  </option>
-                  <option value="regulatory reporting" className="bg-white text-black">
-                    Regulatory Reporting
-                  </option>
-                </select>
-              </div>
-
               {/* Regulatory Criticality */}
               <div>
                 <label className="mb-1 block text-sm font-medium">
@@ -1140,14 +1465,14 @@ const generateSDLCWorkflow = async () => {
                   <option value="" className="bg-white text-black">
                     Select
                   </option>
-                  <option value="speed" className="bg-white text-black">
-                    Speed
+                  <option value="assurance" className="bg-white text-black">
+                    Low
                   </option>
                   <option value="balanced" className="bg-white text-black">
-                    Balanced
+                    Medium
                   </option>
-                  <option value="assurance" className="bg-white text-black">
-                    Assurance
+                  <option value="speed" className="bg-white text-black">
+                    High
                   </option>
                 </select>
               </div>
@@ -1172,16 +1497,16 @@ const generateSDLCWorkflow = async () => {
                     Select
                   </option>
 
-                  <option value="clear" className="bg-white text-black">
-                    Clear
+                  <option value="unclear" className="bg-white text-black">
+                    Low
                   </option>
 
                   <option value="partially clear" className="bg-white text-black">
-                    Partially Clear
+                    Medium
                   </option>
 
-                  <option value="unclear" className="bg-white text-black">
-                    Unclear
+                  <option value="clear" className="bg-white text-black">
+                    High
                   </option>
                 </select>
               </div>
@@ -1456,13 +1781,6 @@ const generateSDLCWorkflow = async () => {
                         >
                           Reject
                         </button>
-
-                        <button
-                          onClick={() => regenerateRequirement(req.id)}
-                          className="rounded border px-3 py-1 text-sm"
-                        >
-                          Regenerate
-                        </button>
                       </div>
                     </div>
 
@@ -1470,16 +1788,6 @@ const generateSDLCWorkflow = async () => {
                       <div>
                         <span className="font-medium">Category:</span>{" "}
                         {req.category}
-                      </div>
-
-                      <div>
-                        <span className="font-medium">Priority:</span>{" "}
-                        {req.priority || "Not specified"}
-                      </div>
-
-                      <div>
-                        <span className="font-medium">Risk:</span>{" "}
-                        {req.risk_level || "Not specified"}
                       </div>
 
                       <div>
@@ -1732,7 +2040,11 @@ const generateSDLCWorkflow = async () => {
             {qualityAnalysis.issues.map((issue, index) => (
               <div
                 key={index}
-                className="rounded-lg border p-4"
+                className={`rounded-lg border p-4 ${
+                  issue.type.toLowerCase() === "conflict"
+                    ? "border-red-300 bg-red-50"
+                    : ""
+                }`}
               >
                 <div className="mb-2 flex items-center justify-between">
                   <span className="font-semibold">

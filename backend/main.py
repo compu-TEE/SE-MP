@@ -15,7 +15,8 @@ from models import (
     RiskFinding as DBRiskFinding,
     SDLCRecommendation as DBSDLCRecommendation,
     DocumentationArtifact as DBDocumentationArtifact,
-    AuditLog
+    AuditLog,
+    ConversationMessage
 )
 from database import SessionLocal
 
@@ -114,7 +115,6 @@ class RiskAnalysis(BaseModel):
     summary: str
 
 class ProjectCharacteristics(BaseModel):
-    project_type: str
     regulatory_criticality: str
     change_frequency: str
     risk_level: str
@@ -273,9 +273,34 @@ Rules:
 - A high completeness score means that the available requirements contain
   enough information for their current scope.
 - Return a score between 0 and 100.
+
+Conflict detection:
+
+Check the requirements for direct or obvious contradictions.
+
+Examples include:
+- Two requirements specifying different limits for the same operation.
+- One requirement requiring something that another requirement forbids.
+- Conflicting values, rules, permissions, or constraints.
+- Requirements whose stated behavior cannot both be satisfied.
+
+Only report a conflict when there is reasonable evidence of contradiction.
+Do not treat different priorities, categories, or levels of detail as conflicts.
+
+For each detected conflict:
+- Set type to "conflict".
+- Identify the affected requirement IDs.
+- Clearly explain the contradiction.
+- Suggest how the stakeholder should resolve it.
+
+Do not invent conflicts.
 """
 
 def analysis_agent(requirements: list[Requirement]) -> QualityAnalysis:
+    requirements = [
+        req for req in requirements
+        if req.approval_status != "Rejected"
+    ]
     if not requirements:
         return QualityAnalysis(
             completeness_score=0,
@@ -350,6 +375,11 @@ Return only structured output.
 def compliance_agent(
     requirements: list[Requirement],
 ) -> ComplianceAnalysis:
+
+    requirements = [
+        req for req in requirements
+        if req.approval_status != "Rejected"
+    ]
 
     if not requirements:
         return ComplianceAnalysis(
@@ -453,6 +483,11 @@ def risk_agent(
     requirements: list[Requirement],
 ) -> RiskAnalysis:
 
+    requirements = [
+        req for req in requirements
+        if req.approval_status != "Rejected"
+    ]
+
     if not requirements:
         return RiskAnalysis(
             findings=[],
@@ -529,7 +564,6 @@ You may ONLY recommend one of these 7 models:
 
 Consider these factors carefully:
 
-- Project type
 - Regulatory criticality
 - Change frequency
 - Risk level
@@ -568,10 +602,19 @@ Agile:
 Use when requirements change frequently, continuous stakeholder feedback is
 important, and the project benefits from short iterative development cycles.
 
+Delivery priority:
+- Low: delivery speed is not a major constraint; prioritize completeness,
+  quality, and risk reduction.
+- Medium: balance delivery speed with engineering quality and risk.
+- High: fast delivery is important; favor approaches that support rapid
+  iteration and shorter feedback cycles.
+
 Requirements clarity:
-- unclear: strongly consider Prototyping
-- partially clear: consider Iterative/Incremental or Prototyping
-- clear: consider Waterfall, V-Model, RAD, or Agile depending on other factors
+- Low: requirements are unclear or ambiguous; strongly consider Prototyping.
+- Medium: requirements are partially defined and may evolve; consider
+  Iterative/Incremental, Prototyping, or Agile.
+- High: requirements are well-defined and stable; consider Waterfall,
+  V-Model, RAD, or Agile depending on other factors.
 
 Do not recommend a model outside the seven listed above.
 
@@ -589,7 +632,6 @@ Return the result in the following structure:
 
 Project characteristics:
 
-Project type: {project_type}
 Regulatory criticality: {regulatory_criticality}
 Change frequency: {change_frequency}
 Risk level: {risk_level}
@@ -759,7 +801,11 @@ Rules:
     db = SessionLocal()
 
     try:
-        project = db.query(Project).first()
+        project = (
+            db.query(Project)
+            .order_by(Project.id.desc())
+            .first()
+        )
 
         if not project:
             project = Project(
@@ -769,6 +815,29 @@ Rules:
             db.add(project)
             db.commit()
             db.refresh(project)
+
+        # Save conversation messages
+        db.query(ConversationMessage).filter(
+            ConversationMessage.project_id == project.id
+        ).delete()
+
+        for message in request.messages:
+            db.add(
+                ConversationMessage(
+                    project_id=project.id,
+                    role=message.role,
+                    content=message.content,
+                )
+            )
+
+        # Save the newly generated AI response
+        db.add(
+            ConversationMessage(
+                project_id=project.id,
+                role="model",
+                content=result["response"],
+            )
+        )
 
         for req in result.get("requirements", []):
             requirement = DBRequirement(
@@ -810,7 +879,11 @@ def analyze_requirements(request: RequirementState):
     db = SessionLocal()
 
     try:
-        project = db.query(Project).first()
+        project = (
+    db.query(Project)
+    .order_by(Project.id.desc())
+    .first()
+)
 
         if not project:
             project = Project(
@@ -860,7 +933,11 @@ def analyze_compliance(request: RequirementState):
     db = SessionLocal()
 
     try:
-        project = db.query(Project).first()
+        project = (
+    db.query(Project)
+    .order_by(Project.id.desc())
+    .first()
+)
 
         if not project:
             project = Project(
@@ -905,7 +982,11 @@ def analyze_risk(request: RequirementState):
     db = SessionLocal()
 
     try:
-        project = db.query(Project).first()
+        project = (
+    db.query(Project)
+    .order_by(Project.id.desc())
+    .first()
+)
 
         if not project:
             project = Project(
@@ -1007,7 +1088,11 @@ def recommend_sdlc(characteristics: ProjectCharacteristics):
     db = SessionLocal()
 
     try:
-        project = db.query(Project).first()
+        project = (
+    db.query(Project)
+    .order_by(Project.id.desc())
+    .first()
+)
 
         if not project:
             project = Project(
@@ -1020,7 +1105,6 @@ def recommend_sdlc(characteristics: ProjectCharacteristics):
 
         sdlc_record = DBSDLCRecommendation(
             project_id=project.id,
-            project_type=characteristics.project_type,
             regulatory_criticality=characteristics.regulatory_criticality,
             change_frequency=characteristics.change_frequency,
             risk_level=characteristics.risk_level,
@@ -1073,7 +1157,11 @@ def generate_documentation(requirements: list[Requirement]):
     db = SessionLocal()
 
     try:
-        project = db.query(Project).first()
+        project = (
+    db.query(Project)
+    .order_by(Project.id.desc())
+    .first()
+)
 
         if not project:
             project = Project(
@@ -1122,13 +1210,45 @@ def generate_documentation(requirements: list[Requirement]):
 
     return documentation
 
+@app.post("/project/new")
+def create_new_project():
+
+    db = SessionLocal()
+
+    try:
+        project = Project(
+            name="Financial Requirements AI Project",
+            description="Automatically extracted financial software requirements"
+        )
+
+        db.add(project)
+        db.commit()
+        db.refresh(project)
+
+        return {
+            "id": project.id,
+            "name": project.name,
+            "description": project.description
+        }
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
 @app.get("/project")
 def get_project():
 
     db = SessionLocal()
 
     try:
-        project = db.query(Project).first()
+        project = (
+            db.query(Project)
+            .order_by(Project.id.desc())
+            .first()
+        )
 
         if not project:
             return {"message": "No project found"}
@@ -1155,6 +1275,12 @@ def get_project():
 
         documentation_artifacts = db.query(DBDocumentationArtifact).filter(
             DBDocumentationArtifact.project_id == project.id
+        ).all()
+
+        messages = db.query(ConversationMessage).filter(
+            ConversationMessage.project_id == project.id
+        ).order_by(
+            ConversationMessage.created_at.asc()
         ).all()
 
         return {
@@ -1221,7 +1347,6 @@ def get_project():
             "sdlc_recommendations": [
                 {
                     "id": recommendation.id,
-                    "project_type": recommendation.project_type,
                     "regulatory_criticality": recommendation.regulatory_criticality,
                     "change_frequency": recommendation.change_frequency,
                     "risk_level": recommendation.risk_level,
@@ -1243,6 +1368,14 @@ def get_project():
                     "content": artifact.content,
                 }
                 for artifact in documentation_artifacts
+            ],
+
+            "messages": [
+                {
+                    "role": message.role,
+                    "content": message.content,
+                }
+                for message in messages
             ],
         }
 
@@ -1413,6 +1546,164 @@ def update_sdlc_approval(
             "recommendation_id": recommendation.id,
             "recommended_model": recommendation.recommended_model,
             "approval_status": recommendation.approval_status
+        }
+
+    finally:
+        db.close()
+
+@app.get("/projects")
+def get_projects():
+    db = SessionLocal()
+    try:
+        projects = db.query(Project).order_by(Project.id.desc()).all()
+
+        return [
+            {
+                "id": project.id,
+                "name": project.name,
+                "description": project.description,
+            }
+            for project in projects
+        ]
+    finally:
+        db.close()
+
+@app.get("/projects/{project_id}")
+def get_project_by_id(project_id: int):
+    db = SessionLocal()
+
+    try:
+        project = db.query(Project).filter(
+            Project.id == project_id
+        ).first()
+
+        if not project:
+            return {"message": "Project not found"}
+
+        requirements = db.query(DBRequirement).filter(
+            DBRequirement.project_id == project.id
+        ).all()
+
+        quality_analysis = db.query(DBQualityAnalysis).filter(
+            DBQualityAnalysis.project_id == project.id
+        ).all()
+
+        compliance_findings = db.query(DBComplianceFinding).filter(
+            DBComplianceFinding.project_id == project.id
+        ).all()
+
+        risk_findings = db.query(DBRiskFinding).filter(
+            DBRiskFinding.project_id == project.id
+        ).all()
+
+        sdlc_recommendations = db.query(DBSDLCRecommendation).filter(
+            DBSDLCRecommendation.project_id == project.id
+        ).all()
+
+        documentation_artifacts = db.query(DBDocumentationArtifact).filter(
+            DBDocumentationArtifact.project_id == project.id
+        ).all()
+
+        messages = db.query(ConversationMessage).filter(
+            ConversationMessage.project_id == project.id
+        ).order_by(
+            ConversationMessage.created_at.asc()
+        ).all()
+
+        return {
+            "project": {
+                "id": project.id,
+                "name": project.name,
+                "description": project.description,
+            },
+
+            "requirements": [
+                {
+                    "id": req.id,
+                    "requirement_code": req.requirement_code,
+                    "statement": req.statement,
+                    "category": req.category,
+                    "source_stakeholder": req.source_stakeholder,
+                    "business_justification": req.business_justification,
+                    "priority": req.priority,
+                    "dependencies": req.dependencies,
+                    "assumptions": req.assumptions,
+                    "acceptance_criteria": req.acceptance_criteria,
+                    "applicable_regulations": req.applicable_regulations,
+                    "risk_level": req.risk_level,
+                    "confidence_score": req.confidence_score,
+                    "approval_status": req.approval_status,
+                }
+                for req in requirements
+            ],
+
+            "quality_analysis": [
+                {
+                    "id": qa.id,
+                    "completeness_score": qa.completeness_score,
+                    "summary": qa.summary,
+                    "issues": qa.issues,
+                }
+                for qa in quality_analysis
+            ],
+
+            "compliance_findings": [
+                {
+                    "id": finding.id,
+                    "requirement_code": finding.requirement_code,
+                    "status": finding.status,
+                    "finding": finding.finding,
+                    "evidence": finding.evidence,
+                    "recommendation": finding.recommendation,
+                }
+                for finding in compliance_findings
+            ],
+
+            "risk_findings": [
+                {
+                    "id": finding.id,
+                    "requirement_code": finding.requirement_code,
+                    "risk_type": finding.risk_type,
+                    "severity": finding.severity,
+                    "description": finding.description,
+                    "mitigation": finding.mitigation,
+                }
+                for finding in risk_findings
+            ],
+
+            "sdlc_recommendations": [
+                {
+                    "id": recommendation.id,
+                    "regulatory_criticality": recommendation.regulatory_criticality,
+                    "change_frequency": recommendation.change_frequency,
+                    "risk_level": recommendation.risk_level,
+                    "complexity": recommendation.complexity,
+                    "delivery_priority": recommendation.delivery_priority,
+                    "requirements_clarity": recommendation.requirements_clarity,
+                    "recommended_model": recommendation.recommended_model,
+                    "reasoning": recommendation.reasoning,
+                    "key_factors": recommendation.key_factors,
+                }
+                for recommendation in sdlc_recommendations
+            ],
+
+            "documentation_artifacts": [
+                {
+                    "id": artifact.id,
+                    "artifact_type": artifact.artifact_type,
+                    "title": artifact.title,
+                    "content": artifact.content,
+                }
+                for artifact in documentation_artifacts
+            ],
+
+            "messages": [
+                {
+                    "role": message.role,
+                    "content": message.content,
+                }
+                for message in messages
+            ],
         }
 
     finally:
